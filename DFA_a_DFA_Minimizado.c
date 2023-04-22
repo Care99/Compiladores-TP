@@ -47,6 +47,7 @@ int verificarMismoSubconjunto(struct nodo* subconjuntoMinimizado, char* identifi
 int subconjuntoAjeno( struct nodo* subconjuntoMinimizado )
 {
     struct vertice* verticeAux = subconjuntoMinimizado->listaVertices;
+    struct nodo* nuevoSubconjunto = subconjuntoMinimizado;
     char* identificador = NULL;
     int ajenoEncontrado = 0;
     while( verticeAux != NULL )
@@ -54,9 +55,26 @@ int subconjuntoAjeno( struct nodo* subconjuntoMinimizado )
         strcpy(identificador,verticeAux->destino->identificador);
         if( !verificarMismoSubconjunto(subconjuntoMinimizado,identificador) )
         {
-            if (!ajenoEncontrado)
+            if (ajenoEncontrado==0)
             {
                 ajenoEncontrado = 1;
+                while (nuevoSubconjunto != NULL)
+                {
+                    nuevoSubconjunto = nuevoSubconjunto.siguienteNodo;
+                }
+                agregarNodo(nuevoSubconjunto,0)
+            }
+            else
+            {
+                while (nuevoSubconjunto != NULL)
+                {
+                    nuevoSubconjunto = nuevoSubconjunto->siguienteNodo;
+                    if (nuevoSubconjunto->siguienteNodo == NULL)
+                    {
+                        break;
+                    }
+                }
+                agregarNodo(nuevoSubconjunto, 0);
             }
         }
     }
@@ -66,13 +84,22 @@ struct nodo* DFA_a_DFA_Minimizado(struct nodo* DFA)
 {
     struct nodo* subconjuntoMinimizado = (struct nodo*)malloc(sizeof(struct nodo) * 1000);
     struct nodo* minimizado = NULL;
-    int i;
+    struct nodo* aux = NULL;
+    char* identificador = NULL;
+    int i = 0;
     int hayNuevoSubconjunto = 1;
     renombrarNodos(DFA);
     subconjuntoMinimizadoIniciales(subconjuntoMinimizado,DFA);
     while (hayNuevoSubconjunto)
     {
         hayNuevoSubconjunto = subcojuntoAjeno(subconjuntoMinimizado);
+    }
+    aux = subconjuntoMinimizado;
+    while (aux != NULL)
+    {
+        strcpy(identificador, identificadorSubconjunto(aux));
+        agregarNodo(minimizado, identificador);
+        aux = aux->siguienteNodo;
     }
     return minimizado;
 }
