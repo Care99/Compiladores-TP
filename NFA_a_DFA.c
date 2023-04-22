@@ -151,6 +151,7 @@ char* identificadorSubconjunto(struct nodo* subconjunto)
 struct nodo * NFA_a_DFA(struct nodo * listadoNodos)
 {
     char* identificador = NULL;
+    char* expresion = NULL;
     struct estado* listadoEstados = NULL;
     struct estado* estado = NULL;
     struct nodo* DFA = NULL;
@@ -171,10 +172,11 @@ struct nodo * NFA_a_DFA(struct nodo * listadoNodos)
         estado = listadoEstados;
         while (estado != NULL)
         {
-            nodoAux = mover(iteracionDFA, estado->expresion);
+            strcpy(expresion, expresion);
+            nodoAux = mover(iteracionDFA, expresion);
             nodoAux = epsilonCerrar(listadoNodos,nodoAux);
             identificador = identificadorSubconjunto(nodoAux);
-            agregarSubconjunto(DFA, identificador,estado->expresion);
+            agregarSubconjunto(DFA, identificador,expresion);
             estado = estado->siguienteEstado;
         }
         iteracionDFA = iteracionDFA->siguienteNodo;
