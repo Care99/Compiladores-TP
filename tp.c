@@ -37,6 +37,7 @@ char* crearCadena(int identificador)
     int digitosIdentificador = 0;
     int aux = identificador;
     int digito = 0;
+    int exponente = 0;
     while (aux > 0)
     {
         aux /= 10;
@@ -45,9 +46,10 @@ char* crearCadena(int identificador)
     aux = identificador;
     while (digitosIdentificador > 0)
     {
-        digito = (aux / (pow(10,digitosIdentificador));
+        exponente = pow(10,digitosIdentificador);
+        digito = (aux / (exponente));
         strcat(cadena, digito + '0');
-        digito = digito * (pow(10,digitosIdentificador));
+        digito = digito * (exponente);
         aux = aux - digito;
     }
     return cadena;
@@ -67,11 +69,11 @@ void agregarNodo(struct nodo * listadoNodos,char * identificador)
     struct nodo * aux = crearNodo(identificador);
     if( listadoNodos == NULL )
     {
-        aux.esInicio = 1;
+        aux->esInicio = 1;
     }
     if (strcmp(listadoNodos->identificador, "11"))
     {
-        aux.esFin = 1;
+        aux->esFin = 1;
     }
     aux->siguienteNodo = listadoNodos;
     listadoNodos = aux;
@@ -101,12 +103,12 @@ void agregarEstado(struct estado * listadoEstados,char*estado)
 struct nodo * agregarEstadosExtremos(struct nodo * listadoNodos)
 {
     char* identificador = crearCadena(0);
-    struct nodo extremoInicial = crearNodo(identificador);
-    identificador = crearCadena(listadoNodos->identificador + 2)
-    struct nodo extremoFinal = crearNodo(identificador);
+    struct nodo* extremoInicial = crearNodo(identificador);
+    identificador = crearCadena(listadoNodos->identificador + 2);
+    struct nodo* extremoFinal = crearNodo(identificador);
 
-    extremoInicial.esInicio = 1;
-    extremoInicial.esFin = 1;
+    extremoInicial->esInicio = 1;
+    extremoInicial->esFin = 1;
     
     int i;
     int tamanoListadoNodos = atoi(listadoNodos->identificador);
@@ -115,18 +117,18 @@ struct nodo * agregarEstadosExtremos(struct nodo * listadoNodos)
         strcpy(listadoNodos[i].identificador, crearCadena(atoi(listadoNodos[i].identificador) + 1));
         if( listadoNodos[i].esInicio == 1 )
         {
-            agregarVertice(&extremoInicial,&listadoNodos[i],caracterVacio);
+            agregarVertice(extremoInicial,&listadoNodos[i],caracterVacio);
             listadoNodos[i].esInicio=0;
         }
         if( listadoNodos[i].esFin == 1 )
         {
-            agregarVertice(&extremoFinal,&listadoNodos[i],caracterVacio);
+            agregarVertice(extremoFinal,&listadoNodos[i],caracterVacio);
             listadoNodos[i].esFin=0;
         }
     }
 
     listadoNodos[tamanoListadoNodos-1].siguienteNodo = &extremoInicial;
-    extremoFinal.siguienteNodo = &listadoNodos[0];
+    extremoFinal->siguienteNodo = &listadoNodos[0];
     listadoNodos = &extremoFinal;
 
     return listadoNodos;
@@ -502,14 +504,17 @@ struct nodo * epsilonCerrar(struct nodo * listadoNodos,struct nodo * estadosInic
     return nuevoEstado;
 }
 
-void agregarSubconjunto(struct nodo* DFA, char* identificador, char* expresion);
+void agregarSubconjunto(struct nodo* DFA, char* identificador, char* expresion)
 {
     struct nodo * auxDFA = DFA;
+    struct nodo * nuevoNodo = NULL;
     while (auxDFA != NULL)
     {
         if (strcmp(auxDFA->identificador, identificador))
         {
-            agregarVertice(aux)
+            agregarNodo(DFA,identificador);
+            nuevoNodo = DFA;
+            agregarVertice(nuevoNodo,auxDFA,expresion);
         }
         else
         {
@@ -537,31 +542,94 @@ struct nodo * NFA_a_DFA(struct nodo * listadoNodos)
     char* identificador = NULL;
     struct estado* listadoEstados = NULL;
     struct estado* estado = NULL;
-    struct nodo* subconjuntoInicial = NULL;
-    struct nodo** DFA = NULL;
+    struct nodo* DFA = NULL;
+    struct nodo* iteracionDFA = NULL;
     struct nodo* nodoAux = NULL;
-    struct nodo** listadoSubconjuntos = NULL;
     int haySubconjuntoNuevo = 1;
     agregarEstados(listadoEstados, listadoNodos);
-    while (haySubconjuntoNuevo)
+    iteracionDFA = DFA;
+    while (iteracionDFA == NULL)
     {
         haySubconjuntoNuevo = 0;
-        if (listadoSubconjuntos == NULL)
+        if ( DFA == NULL)
         {
             haySubconjuntoNuevo = 1;
             identificador = identificadorSubconjunto(nodoAux);
-            agregarSubconjunto(DFA, identificador);
+            agregarSubconjunto(DFA, identificador,caracterVacio);
         }
         estado = listadoEstados;
         while (estado != NULL)
         {
-            nodoAux = mover(listadoSubconjuntos, estado->expresion);
+            nodoAux = mover(iteracionDFA, estado->expresion);
+            nodoAux = epsilonCerrar(listadoNodos,nodoAux);
             identificador = identificadorSubconjunto(nodoAux);
-            agregarSubconjunto(DFA, identificador);
+            agregarSubconjunto(DFA, identificador,estado->expresion);
             estado = estado->siguienteEstado;
         }
+        iteracionDFA = iteracionDFA->siguienteNodo;
     }
     return DFA;
+}
+void renombrarNodos(struct nodo* DFA)
+{
+    struct nodo* aux = DFA;
+    int i=0;
+    char* identificador=NULL;
+    while(aux!=NULL)
+    {
+        identificador=crearCadena(i);
+        strcpy(aux->identificador,identificador);
+        i++;
+        aux=aux->siguienteNodo;
+    }
+}
+void subconjuntoMinimizadoIniciales(struct nodo** subconjuntoMinimizado, struct nodo* DFA)
+{
+    struct nodo* aux = DFA;
+    subconjuntoMinimizado[0] = (struct nodo*)malloc(sizeof(struct nodo) * 1000);
+    subconjuntoMinimizado[1] = (struct nodo*)malloc(sizeof(struct nodo) * 1000);
+    while( aux != NULL )
+    {
+        if( aux->esFin == 1 )
+        {
+            agregarNodo(subconjuntoMinimizado[1],0);
+        }
+        else
+        {
+            agregarNodo(subconjuntoMinimizado[0],0);
+        }
+        aux = aux->siguienteNodo;
+    }
+}
+int subconjuntoAjeno( struct nodo* subconjuntoMinimizado )
+{
+    struct vertice* verticeAux = subconjuntoMinimizado->listaVertices;
+    char* identificador = NULL;
+    while( verticeAux != NULL )
+    {
+        strcpy(identificador,verticeAux->destino->identificador);
+        if( nodoAjeno(subconjuntoMinimizado,identificador) )
+        {
+            
+        }
+    }
+}
+struct nodo* DFA_a_DFA_Minimizado(struct nodo* DFA)
+{
+    struct nodo* subconjuntoMinimizado = (struct nodo*)malloc(sizeof(struct nodo) * 1000);
+    struct nodo* minimizado = NULL;
+    int i;
+    int hayNuevoSubconjunto = 1;
+    subconjuntoMinimizadoIniciales(subconjuntoMinimizado,DFA);
+    renombrarNodos(DFA);
+    while(hayNuevoSubconjunto)
+    {
+        if( subcojuntoAjeno(subconjuntoMinimizado) )
+        {
+            hayNuevoSubconjunto = 1;
+        }
+    }
+    return minimizado;
 }
 int main()
 {
