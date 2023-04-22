@@ -45,6 +45,6 @@ int main()
     //convertir a DFA
     listadoNodos = NFA_a_DFA(listadoNodos);
     //convertir a DFA minimizado
-    //listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
+    listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
     return 0;
 }
