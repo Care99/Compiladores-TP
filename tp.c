@@ -1,5 +1,5 @@
 #include "tp.h"
-int pow(int base, int exponente)
+long exponente(long base, long exponente)
 {
     while (exponente > 0)
     {
@@ -10,8 +10,9 @@ int pow(int base, int exponente)
 }
 int main()
 {
-    char* identificador=NULL;
-    char* expresion=NULL;
+    char* identificador=(char*)malloc(sizeof(char) * 1000);
+    char* expresion=(char*)malloc(sizeof(char) * 1000);
+    char* regex=(char*)malloc(sizeof(char) * 1000);
     struct nodo* listadoNodos = NULL;
     struct nodo* nodoInicial = NULL;
     struct nodo* nodoFinal = NULL;
@@ -27,7 +28,7 @@ int main()
     agregarNodo(listadoNodos, identificador);
     listadoNodos->esFin = 1;
     nodoFinal = listadoNodos;
-    strcpy(expresion, 'a');
+    strcpy(expresion, (char*)'a');
     agregarVertice(nodoInicial, nodoFinal, expresion);
     /*
         for (i = 0; i < 12; i++)
@@ -54,8 +55,9 @@ int main()
         }
     */
     //convertir a regex
-    char * regex = NFA_a_Regex(listadoNodos);
+    //char * regex = NFA_a_Regex(listadoNodos);
     //convertir a NFA con el algoritmo de Thompson
+    strcpy(regex,"((a)|(b))*(abb)");
     listadoNodos = NULL;
     NFA_Thompson_Parentesis(listadoNodos,regex);
     //convertir a DFA
