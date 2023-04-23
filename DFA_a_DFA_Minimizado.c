@@ -12,20 +12,18 @@ void renombrarNodos(struct nodo* DFA)
         aux=aux->siguienteNodo;
     }
 }
-void subconjuntoMinimizadoIniciales(struct nodo** subconjuntoMinimizado, struct nodo* DFA)
+void subconjuntoMinimizadoIniciales(struct nodo* subconjuntoMinimizado, struct nodo* DFA)
 {
     struct nodo* aux = DFA;
-    subconjuntoMinimizado[0] = (struct nodo*)malloc(sizeof(struct nodo) * 1000);
-    subconjuntoMinimizado[1] = (struct nodo*)malloc(sizeof(struct nodo) * 1000);
     while( aux != NULL )
     {
         if( aux->esFin == 1 )
         {
-            agregarNodo(subconjuntoMinimizado[1],0);
+            agregarNodo(&subconjuntoMinimizado[1],0);
         }
         else
         {
-            agregarNodo(subconjuntoMinimizado[0],0);
+            agregarNodo(&subconjuntoMinimizado[0],0);
         }
         aux = aux->siguienteNodo;
     }
@@ -60,9 +58,9 @@ int subconjuntoAjeno( struct nodo* subconjuntoMinimizado )
                 ajenoEncontrado = 1;
                 while (nuevoSubconjunto != NULL)
                 {
-                    nuevoSubconjunto = nuevoSubconjunto.siguienteNodo;
+                    nuevoSubconjunto = nuevoSubconjunto->siguienteNodo;
                 }
-                agregarNodo(nuevoSubconjunto,0)
+                agregarNodo(nuevoSubconjunto,0);
             }
             else
             {
@@ -86,13 +84,12 @@ struct nodo* DFA_a_DFA_Minimizado(struct nodo* DFA)
     struct nodo* minimizado = NULL;
     struct nodo* aux = NULL;
     char* identificador = NULL;
-    int i = 0;
     int hayNuevoSubconjunto = 1;
     renombrarNodos(DFA);
     subconjuntoMinimizadoIniciales(subconjuntoMinimizado,DFA);
     while (hayNuevoSubconjunto)
     {
-        hayNuevoSubconjunto = subcojuntoAjeno(subconjuntoMinimizado);
+        hayNuevoSubconjunto = subconjuntoAjeno(subconjuntoMinimizado);
     }
     aux = subconjuntoMinimizado;
     while (aux != NULL)
