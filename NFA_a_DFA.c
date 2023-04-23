@@ -102,7 +102,7 @@ struct nodo * epsilonCerrar(struct nodo * listadoNodos,struct nodo * estadosInic
         aux->esVisitado = 1;
         while(iteracionVertice!=NULL)
         {
-            if (strcmp(iteracionVertice->expresion, caracterVacio) && iteracionVertice->destino->esVisitado == 0)
+            if (iteracionVertice->expresion==caracterVacio && iteracionVertice->destino->esVisitado == 0)
             {
                 identificador = crearCadena(atoi(identificador) + 1);
                 agregarNodo(nuevoEstado, identificador);
@@ -140,11 +140,12 @@ void agregarSubconjunto(struct nodo* DFA, char* identificador, char* expresion)
 char* identificadorSubconjunto(struct nodo* subconjunto)
 {
     char* identificador = (char*)malloc(sizeof(char) * 1000);
+    char separador = ',';
     struct nodo* aux = subconjunto;
     while (aux != NULL)
     {
         strcat(identificador, aux->identificador);
-        strcat(identificador, (char*)',');
+        strcat(identificador, &separador);
     }
     return identificador;
 }
@@ -157,22 +158,19 @@ struct nodo * NFA_a_DFA(struct nodo * listadoNodos)
     struct nodo* DFA = NULL;
     struct nodo* iteracionDFA = NULL;
     struct nodo* nodoAux = NULL;
-    int haySubconjuntoNuevo = 1;
     agregarEstados(listadoEstados, listadoNodos);
     iteracionDFA = DFA;
-    while (iteracionDFA == NULL)
+    while (iteracionDFA != NULL)
     {
-        haySubconjuntoNuevo = 0;
         if ( DFA == NULL)
         {
-            haySubconjuntoNuevo = 1;
             identificador = identificadorSubconjunto(nodoAux);
             agregarSubconjunto(DFA, identificador,caracterVacio);
         }
         estado = listadoEstados;
         while (estado != NULL)
         {
-            strcpy(expresion, expresion);
+            strcpy(expresion, estado->expresion);
             nodoAux = mover(iteracionDFA, expresion);
             nodoAux = epsilonCerrar(listadoNodos,nodoAux);
             identificador = identificadorSubconjunto(nodoAux);
