@@ -2,10 +2,11 @@
 char* crearCadena(int identificador)
 {
     char* cadena = (char*)malloc(sizeof(char) * 1000);
+    char valorDigito = '0';
     int digitosIdentificador = 0;
     int aux = identificador;
     int digito = 0;
-    int exponente = 0;
+    long exp = 0;
     while (aux > 0)
     {
         aux /= 10;
@@ -14,10 +15,11 @@ char* crearCadena(int identificador)
     aux = identificador;
     while (digitosIdentificador > 0)
     {
-        exponente = pow(10,digitosIdentificador);
-        digito = (aux / (exponente));
-        strcat(cadena, digito + '0');
-        digito = digito * (exponente);
+        exp = exponente(10,digitosIdentificador);
+        digito = (aux / (exp));
+        valorDigito = '0' + digito;
+        strcat(cadena,&valorDigito);
+        digito = digito * (exp);
         aux = aux - digito;
     }
     return cadena;
@@ -26,6 +28,7 @@ struct nodo * crearNodo(char * identificador)
 {
     struct nodo * n = (struct nodo *)malloc(sizeof(struct nodo));
     n->esInicio      = 0;
+    n->identificador = (char*)malloc(sizeof(char) * 1000);
     n->esFin         = 0;
     strcpy(n->identificador, identificador);
     n->listaVertices = NULL;
@@ -63,6 +66,7 @@ void agregarVertice(struct nodo * origen, struct nodo * destino, char * expresio
 void agregarEstado(struct estado * listadoEstados,char*estado)
 {
     struct estado * aux = (struct estado *)malloc(sizeof(struct estado));
+    aux->expresion=(char*)malloc(sizeof(char)*1000);
     strcpy(aux->expresion,estado);
     aux->siguienteEstado = listadoEstados;
     listadoEstados = aux;
@@ -72,7 +76,7 @@ struct nodo * agregarEstadosExtremos(struct nodo * listadoNodos)
 {
     char* identificador = crearCadena(0);
     struct nodo* extremoInicial = crearNodo(identificador);
-    identificador = crearCadena(listadoNodos->identificador + 2);
+    identificador = crearCadena(atoi(listadoNodos->identificador) + 2);
     struct nodo* extremoFinal = crearNodo(identificador);
 
     extremoInicial->esInicio = 1;
@@ -95,9 +99,9 @@ struct nodo * agregarEstadosExtremos(struct nodo * listadoNodos)
         }
     }
 
-    listadoNodos[tamanoListadoNodos-1].siguienteNodo = &extremoInicial;
+    listadoNodos[tamanoListadoNodos-1].siguienteNodo = extremoInicial;
     extremoFinal->siguienteNodo = &listadoNodos[0];
-    listadoNodos = &extremoFinal;
+    listadoNodos = extremoFinal;
 
     return listadoNodos;
 }
@@ -120,7 +124,7 @@ char *** crearDiagramaEstado(struct nodo * listadoNodos)
     {
         for( j = 0; j < tamanoListadoNodos; j++ )
         {
-            strcpy(diagramaEstado[i][j],caracterVacio);
+            diagramaEstado[i][j] = caracterVacio;
         }
     }
     for( i = 0; i < tamanoListadoNodos; i++ )
