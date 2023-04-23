@@ -1,10 +1,14 @@
 #include "tp.h"
-char ** reducirNFA(char *** diagramaEstado, int tamanoListadoNodos, int tamanoAux)
+char *** reducirNFA(char *** diagramaEstado, int tamanoListadoNodos, int tamanoAux)
 {
     char * expresionOrigen  = (char*)malloc(sizeof(char)*1000);
     char * expresionCiclo   = (char*)malloc(sizeof(char)*1000);
     char * expresionDestino = (char*)malloc(sizeof(char)*1000);
     char * expresionNueva   = (char*)malloc(sizeof(char)*1000);
+    char aperturaParentesis = '(';
+    char cerraduraParentesis = ')';
+    char estrella = '*';
+    char concatenacion = '|';
     char *** diagramaAuxiliar;
     int i,j;
     diagramaAuxiliar = (char***)malloc(sizeof(char**) * tamanoAux);
@@ -17,10 +21,12 @@ char ** reducirNFA(char *** diagramaEstado, int tamanoListadoNodos, int tamanoAu
         }
     }
     strcpy(expresionCiclo,diagramaEstado[tamanoAux-1][tamanoAux-1]);
-    if(!strcmp(expresionCiclo,caracterVacio))
+    if(expresionCiclo!=caracterVacio)
     {
-        strcpy(expresionCiclo,strcat((char*)'(',expresionCiclo));
-        strcpy(expresionCiclo,")*");
+        strcpy(expresionCiclo,strcat(&aperturaParentesis,expresionCiclo));
+        strcpy(expresionCiclo,&cerraduraParentesis);
+        strcpy(expresionCiclo,&estrella);
+        aperturaParentesis='(';
     }
     for( i = 0; i < tamanoAux; i++ )
     {
@@ -31,26 +37,28 @@ char ** reducirNFA(char *** diagramaEstado, int tamanoListadoNodos, int tamanoAu
     }
     for( j = 0; j < tamanoListadoNodos; j++ )
     {
-        if(j!=tamanoAux&&!strcmp(diagramaEstado[tamanoAux-1][j],caracterVacio))
+        if(j!=tamanoAux&&diagramaEstado[tamanoAux-1][j]!=caracterVacio)
         {
             strcpy(expresionDestino,diagramaEstado[tamanoAux-1][j]);
             for( i = 0; i < tamanoListadoNodos; i++ )
             {
-                if(i!=tamanoAux&&!strcmp(diagramaEstado[i][tamanoAux-1],caracterVacio))
+                if(i!=tamanoAux&&diagramaEstado[i][tamanoAux-1]!=caracterVacio)
                 {
-                    if(!strcmp(diagramaEstado[i][j],caracterVacio))
+                    if(diagramaEstado[i][j]!=caracterVacio)
                     {
 
-                        strcpy(diagramaEstado[i][j],strcat((char*)'(',diagramaEstado[i][j]));
-                        strcat(diagramaEstado[i][j],")|");
+                        strcpy(diagramaEstado[i][j],strcat(&aperturaParentesis,diagramaEstado[i][j]));
+                        strcat(diagramaEstado[i][j],&cerraduraParentesis);
+                        strcat(diagramaEstado[i][j],&concatenacion);
+                        aperturaParentesis='(';
                     }
-                    strcat(diagramaEstado[i][j],(char*)'(');
+                    strcat(diagramaEstado[i][j],&aperturaParentesis);
                     strcpy(expresionOrigen,diagramaEstado[i][tamanoAux-1]);
                     strcpy(expresionNueva,expresionOrigen);
                     strcat(expresionNueva,expresionCiclo);
                     strcat(expresionNueva,expresionDestino);
                     strcpy(diagramaEstado[i][j],expresionNueva);
-                    strcat(diagramaEstado[i][j],(char*)')');
+                    strcat(diagramaEstado[i][j],&cerraduraParentesis);
                 }
             }
         }
@@ -61,9 +69,7 @@ char * NFA_a_Regex(struct nodo * listadoNodos)
 {
     int tamanoListadoNodos = 0;
     int tamanoAux = 0;
-    int i = 0;
-    int j = 0;
-    char *** diagramaEstado = creardiagramaEstado(listadoNodos);
+    char *** diagramaEstado = crearDiagramaEstado(listadoNodos);
     char * regex =(char*)malloc(sizeof(char)*1000);
     if(tamanoListadoNodos < 2)
     {
@@ -71,7 +77,7 @@ char * NFA_a_Regex(struct nodo * listadoNodos)
         return 0;
     }
 
-    listadoNodos = agregarEstadosExtremos(diagramaEstado);
+    listadoNodos = agregarEstadosExtremos(listadoNodos);
     tamanoListadoNodos = atoi(listadoNodos->identificador);
     tamanoAux = tamanoListadoNodos; 
     diagramaEstado = crearDiagramaEstado(listadoNodos);
