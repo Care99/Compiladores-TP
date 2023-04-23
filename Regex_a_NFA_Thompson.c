@@ -1,4 +1,17 @@
 #include "tp.h"
+struct nodo* ultimoNodo(struct nodo* thompson)
+{
+    struct nodo* aux = thompson;
+    while(aux!=NULL)
+    {
+        if(aux->siguienteNodo==NULL)
+        {
+            break;
+        }
+        aux = aux->siguienteNodo;
+    }
+    return aux;
+}
 int visitarParentesis(char * regex)
 {
     int posicionParentesis = -1;
@@ -6,13 +19,17 @@ int visitarParentesis(char * regex)
     int cantidadCerraduraParentesis = 0;
     int i;
     int tamanoRegex = strlen(regex);
+    char aperturaParentesis='(';
+    char cerraduraParentesis=')';
+    char simboloActual = '(';
     for(i=1;i<tamanoRegex;i++)
     {
-        if( strcmp(&regex[i],(char*)'(') )
+        simboloActual = regex[i];
+        if( strcmp(&simboloActual,&aperturaParentesis) )
         {
             cantidadAparturaParentesis++;
         }
-        if( strcmp(&regex[i],(char*)')') )
+        if( strcmp(&simboloActual,&cerraduraParentesis) )
         {
             cantidadCerraduraParentesis++;
         }
@@ -24,7 +41,7 @@ int visitarParentesis(char * regex)
     }
     return posicionParentesis;
 }
-void NFA_Thompson_Concatenacion(struct nodo * thompson, char * regex)
+struct nodo* NFA_Thompson_Concatenacion(struct nodo * thompson, char * regex)
 {
     struct nodo * aperturaNodoA             = NULL;
     struct nodo * aperturaNodoB             = NULL;
@@ -36,15 +53,14 @@ void NFA_Thompson_Concatenacion(struct nodo * thompson, char * regex)
     int aperturaParentesisA     = 0;
     int cerraduraParentesisA    = visitarParentesis(regex);
     int aperturaParentesisB     = cerraduraParentesisA+2;
-    int cerraduraParentesisB    = visitarParentesis(&regex[aperturaParentesisB]);;
-    if(aperturaNodoB<3)
+    if(atoi(aperturaNodoB->identificador)<3)
     {
         printf("Caracter | invalido");
         return NULL;
     }
 
     NFA_Thompson_Parentesis(aperturaNodoA,&regex[aperturaParentesisA]);
-    NFA_Thompson_Parentesis(aperturaNodoB,&regex[aperturaParentesisA]);
+    NFA_Thompson_Parentesis(aperturaNodoB,&regex[aperturaParentesisB]);
     cerraduraNodoA          = ultimoNodo(aperturaNodoA);
     cerraduraNodoB          = ultimoNodo(aperturaNodoB);
 
@@ -60,7 +76,7 @@ void NFA_Thompson_Concatenacion(struct nodo * thompson, char * regex)
     
     return aperturaConcatenacion;
 }
-void NFA_Thompson_Estrella(struct nodo * thompson, char * regex)
+struct nodo* NFA_Thompson_Estrella(struct nodo * thompson, char * regex)
 {
     struct nodo * aperturaNodo      = NULL;
     struct nodo * cerraduraNodo     = NULL;
@@ -68,7 +84,7 @@ void NFA_Thompson_Estrella(struct nodo * thompson, char * regex)
     struct nodo * cerraduraEstrella = NULL;
     char* identificador = crearCadena(atoi(thompson->identificador) + 1);
     int aperturaParentesis     = 0;
-    int cerraduraParentesis    = visitarParentesis(regex);
+    int cerraduraParentesis    = visitarParentesis(&regex[aperturaParentesis]);
     if(cerraduraParentesis<1)
     {
         printf("Caracter * invalido");
@@ -89,18 +105,17 @@ void NFA_Thompson_Estrella(struct nodo * thompson, char * regex)
     
     return aperturaEstrella;
 }
-void NFA_Thompson_Parentesis(struct nodo * thompson, char * regex)
+struct nodo* NFA_Thompson_Parentesis(struct nodo * thompson, char * regex)
 {
     int tamanoRegex = strlen(regex);
     int i;
-    int idNodoThompson = 0;
     int aperturaParentesis = 0;
     int cerraduraParentesis;
     char* identificador = crearCadena(atoi(thompson->identificador) + 1);
-    char * simboloParentesis = '(';
-    char * simboloConcatenacion = '|';
-    char * simboloEstrella = '*';
-    char * simboloActual = NULL;
+    char simboloParentesis = '(';
+    char simboloConcatenacion = '|';
+    char simboloEstrella = '*';
+    char simboloActual = '(';
     struct nodo * aperturaNodo = NULL;
     struct nodo * cerraduraNodo = NULL;
     char * expresion = (char*)malloc(sizeof(char)*1000);
@@ -111,20 +126,20 @@ void NFA_Thompson_Parentesis(struct nodo * thompson, char * regex)
     cerraduraNodo = thompson;
     for(i=1;i<tamanoRegex;i++)
     {
-        strcmp(simboloActual,&regex[i]);
-        if(strcmp(simboloActual,simboloParentesis))
+        simboloActual=regex[i];
+        if(strcmp(&simboloActual,&simboloParentesis))
         {
             NFA_Thompson_Concatenacion(thompson,&regex[i]);
         }
         cerraduraParentesis = visitarParentesis(&regex[i]);
         if(cerraduraParentesis<tamanoRegex)
         {
-            strcmp(simboloActual,&regex[cerraduraParentesis+1]);
-            if( strcmp(simboloActual,simboloConcatenacion) )
+            simboloActual=regex[cerraduraParentesis+1];
+            if( strcmp(&simboloActual,&simboloConcatenacion) )
             {
                 NFA_Thompson_Concatenacion(thompson,&regex[i]);
             }
-            if( strcmp(simboloActual,simboloEstrella) )
+            if( strcmp(&simboloActual,&simboloEstrella) )
             {
                 NFA_Thompson_Estrella(thompson,&regex[i]);
             }
