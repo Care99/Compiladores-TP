@@ -16,10 +16,10 @@ int main()
     struct nodo* listadoNodos = NULL;
     struct nodo* nodoInicial = NULL;
     struct nodo* nodoFinal = NULL;
-    int i = 0;
-    int j = 0;
-    int inicio = 0;
-    int fin = 11;
+    //int i = 0;
+    //int j = 0;
+    //int inicio = 0;
+    //int fin = 11;
     identificador = crearCadena(0);
     agregarNodo(listadoNodos, identificador);
     listadoNodos->esInicio = 1;
@@ -28,7 +28,7 @@ int main()
     agregarNodo(listadoNodos, identificador);
     listadoNodos->esFin = 1;
     nodoFinal = listadoNodos;
-    strcpy(expresion, (char*)'a');
+    //strcpy(expresion, (char*)'a');
     agregarVertice(nodoInicial, nodoFinal, expresion);
     /*
         for (i = 0; i < 12; i++)
