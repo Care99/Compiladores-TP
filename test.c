@@ -691,31 +691,71 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo * thompson, char * regex)
     int aperturaParentesis = 0;
     int cerraduraParentesis = visitarParentesis(&regex[aperturaParentesis]);
     int tamanoParentesisRegex = visitarParentesis(regex);
+    int tamanoSubParentesisRegex = 0;
     char* expresion = (char*)malloc(sizeof(char)*1000);
     char* identificador = (char*)malloc(sizeof(char) * 1000);
     char* regexParentesis = (char*)malloc(sizeof(char) * 1000);
     char simboloParentesis = '(';
     char simboloActual = '(';
     struct nodo* aperturaNodo = NULL;
-    struct nodo* subParentesis = NULL;
+    struct nodo* aperturaSubParentesis = NULL;
+    struct nodo* cerraduraSubParentesis = NULL;
     struct nodo* cerraduraNodo = NULL;
     
     if(thompson==NULL)
     {
         identificador = crearCadena(0);
     }
-    strncpy(regexParentesis,regex,tamanoParentesisRegex);
-    identificador = crearCadena(atoi(identificador) + 1);
-    thompson = agregarNodo(thompson,identificador);
-    aperturaNodo = thompson;
-    identificador = crearCadena(atoi(identificador) + 1);
-    thompson = agregarNodo(thompson,identificador);
-    cerraduraNodo = thompson;
-    simboloActual = '\0';
-    strcpy(expresion,&simboloActual);
-    subParentesis = Regex_a_NFA_Thompson(thompson,regexParentesis);
-    agregarVertice(aperturaNodo,cerraduraNodo,expresion);            
-    strcat(expresion,&simboloActual);
+    for (i = 1; i < tamanoParentesisRegex; i++)
+    {
+        simboloActual = regex[i];
+        if (simboloActual == simboloParentesis)
+        {
+            if (strlen(expresion) == 0)
+            {
+                tamanoSubParentesisRegex = visitarParentesis(&regex[i]);
+                strncpy(regexParentesis, regex, tamanoSubParentesisRegex);
+                cerraduraSubParentesis = Regex_a_NFA_Thompson(thompson, regexParentesis);
+                aperturaSubParentesis = ultimoNodo(aperturaSubParentesis);
+            }
+            else
+            {
+                if (thompson == NULL)
+                {
+                    identificador = crearCadena(atoi(identificador) + 1);
+                    thompson = agregarNodo(thompson, identificador);
+                }
+                aperturaNodo = thompson;
+                identificador = crearCadena(atoi(identificador) + 1);
+                thompson = agregarNodo(thompson, identificador);
+                cerraduraNodo = thompson;
+                agregarVertice(aperturaNodo, cerraduraNodo, expresion);
+                tamanoSubParentesisRegex = visitarParentesis(&regex[i]);
+                strncpy(regexParentesis, regex, tamanoSubParentesisRegex);
+                cerraduraSubParentesis = Regex_a_NFA_Thompson(thompson, regexParentesis);
+                aperturaSubParentesis = ultimoNodo(aperturaSubParentesis);
+            }
+            aperturaSubParentesis->siguienteNodo = thompson;
+            thompson = cerraduraSubParentesis;
+        }
+        else
+        {
+            strcat(expresion, &simboloActual);
+        }
+    }
+    if (strlen(expresion) != 0)
+    {
+        if (thompson == NULL)
+        {
+            identificador = crearCadena(atoi(identificador) + 1);
+            thompson = agregarNodo(thompson, identificador);
+        }
+        aperturaNodo = thompson;
+        identificador = crearCadena(atoi(identificador) + 1);
+        thompson = agregarNodo(thompson, identificador);
+        cerraduraNodo = thompson;
+        agregarVertice(aperturaNodo, cerraduraNodo, expresion);
+    }
     return thompson;
 }
 
