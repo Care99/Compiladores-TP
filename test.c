@@ -27,11 +27,13 @@ char*** reducirNFA(char*** diagramaEstado, int tamanoListadoNodos, int tamanoAux
 char* crearCadena(int identificador);
 char* identificadorSubconjunto(struct nodo* subconjunto);
 char* NFA_a_Regex(struct nodo* listadoNodos);
+int compararCadenas(char* cadena1, char* cadena2);
 int esDiferente(struct estado* listadoEstados, char* expresion);
-long exponente(long base, long exponente);
 int subconjuntoAjeno(struct nodo* subconjuntoMinimizado);
 int verificarMismoSubconjunto(struct nodo* subconjuntoMinimizado, char* identificador);
 int visitarParentesis(char* regex);
+long exponente(long base, long exponente);
+struct estado* agregarEstado(struct estado * listadoEstados,char*estado);
 struct nodo* agregarEstadosExtremos(struct nodo* listadoNodos);
 struct nodo* agregarNodo(struct nodo* listadoNodos, char* identificador);
 struct nodo* crearNodo(char* identificador);
@@ -44,7 +46,7 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo* thompson, char* regex);
 struct nodo* mover(struct nodo* listadoNodos, char* expresion);
 struct nodo* Regex_a_NFA_Thompson(struct nodo* thompson, char* regex);
 struct nodo* renombrarNodos(struct nodo* DFA);
-void agregarEstado(struct estado* listadoEstados, char* estado);
+struct nodo* ultimoNodo(struct nodo* thompson);
 void agregarEstados(struct estado* listadoEstados, struct nodo* listadoNodos);
 void agregarSubconjunto(struct nodo* DFA, char* identificador, char* expresion);
 void agregarVertice(struct nodo* origen, struct nodo* destino, char* expresion);
@@ -80,6 +82,11 @@ char* crearCadena(int identificador)
         strcat(cadena,&valorDigito);
         digito = digito * (exp);
         aux = aux - digito;
+        if( aux == 0 )
+        {
+            valorDigito = '0';
+            strcat(cadena,&valorDigito);
+        }
     }
     return cadena;
 }
@@ -125,7 +132,7 @@ void agregarVertice(struct nodo * origen, struct nodo * destino, char * expresio
     origen->listaVertices = aux;
 }
 
-void agregarEstado(struct estado * listadoEstados,char*estado)
+struct estado* agregarEstado(struct estado * listadoEstados,char*estado)
 {
     struct estado * aux = (struct estado *)malloc(sizeof(struct estado));
     aux->expresion=(char*)malloc(sizeof(char)*1000);
@@ -214,6 +221,7 @@ struct nodo * renombrarNodos(struct nodo* DFA)
         i++;
         aux=aux->siguienteNodo;
     }
+    return DFA;
 }
 void subconjuntoMinimizadoIniciales(struct nodo* subconjuntoMinimizado, struct nodo* DFA)
 {
@@ -310,21 +318,42 @@ struct nodo* DFA_a_DFA_Minimizado(struct nodo* DFA)
     }
     return minimizado;
 }
-
+int compararCadenas(char* cadena1, char* cadena2)
+{
+    int respuesta = 0;
+    int tamanoCadena1 = strlen(cadena1);
+    int tamanoCadena2 = strlen(cadena2);
+    if( tamanoCadena1 != tamanoCadena2 )
+    {
+        respuesta = 1;
+        return respuesta;
+    }
+    for(int i = 0; i < tamanoCadena1; i++)
+    {
+        if( cadena1[i] != cadena2[i] )
+        {
+            respuesta = 1;
+            return respuesta;
+        }
+    }
+    return respuesta;
+}
 int esDiferente(struct estado * listadoEstados,char*expresion)
 {
     struct estado * aux = listadoEstados;
+    int sonDiferentes = 0;
     int respuesta = 1;
     while( aux != NULL )
     {
-        if (strcmp(aux->expresion, expresion))
+        sonDiferentes = compararCadenas(aux->expresion,expresion);
+        if (sonDiferentes)
         {
-            respuesta = 0;
-            aux = NULL;
+            aux = aux->siguienteEstado;
         }
         else
         {
-            aux = aux->siguienteEstado;
+            respuesta = 0;
+            aux = NULL;
         }
     }
     return respuesta;
@@ -332,19 +361,22 @@ int esDiferente(struct estado * listadoEstados,char*expresion)
 void agregarEstados(struct estado * listadoEstados,struct nodo * listadoNodos)
 {
     struct vertice * iteracionVertice = NULL;
-    char * expresion = NULL;
-    int tamanoNodos = atoi(listadoNodos->identificador);
-    for (int i = 0; i < tamanoNodos; i++)
+    struct nodo* nodoAux = listadoNodos;
+    char* expresion = (char*)malloc(sizeof(char) * 1000);
+    int tamanoNodos = atoi(nodoAux->identificador);
+    while( nodoAux != NULL )
     {
-        iteracionVertice = listadoNodos->listaVertices;
+        iteracionVertice = nodoAux->listaVertices;
         while (iteracionVertice != NULL)
         {
             strcpy(expresion,iteracionVertice->expresion);
             if( esDiferente(listadoEstados,expresion) )
             {
-                agregarEstado(listadoEstados,expresion);
+                listadoEstados = agregarEstado(listadoEstados,expresion);
             }
+            iteracionVertice = iteracionVertice->siguienteVertice;
         }
+        nodoAux = nodoAux->siguienteNodo;
     }
 }
 void reiniciarVisibilidad(struct nodo * listadoNodos)
