@@ -52,7 +52,6 @@ void agregarSubconjunto(struct nodo* DFA, char* identificador, char* expresion);
 void agregarVertice(struct nodo* origen, struct nodo* destino, char* expresion);
 void reiniciarVisibilidad(struct nodo* listadoNodos);
 void subconjuntoMinimizadoIniciales(struct nodo* subconjuntoMinimizado, struct nodo* DFA);
-
 char* crearCadena(int identificador)
 {
     char* cadena = (char*)malloc(sizeof(char) * 1000);
@@ -64,7 +63,8 @@ char* crearCadena(int identificador)
     if( identificador == 0 )
     {
         valorDigito = '0';
-        strcat(cadena,&valorDigito);
+        cadena[0] = valorDigito;
+        cadena[1] = '\0';
         return cadena;
     }
     while (aux > 0)
@@ -96,7 +96,15 @@ struct nodo * crearNodo(char * identificador)
     n->esInicio      = 0;
     n->identificador = (char*)malloc(sizeof(char) * 1000);
     n->esFin         = 0;
-    strcpy(n->identificador, identificador);
+    if(strlen(identificador)==1)
+    {
+        n->identificador[0]=identificador[0];
+        n->identificador[1]='\0';
+    }
+    else
+    {
+        strcpy(n->identificador, identificador);
+    }
     n->listaVertices = NULL;
     n->siguienteNodo = NULL;
     return n;
@@ -119,7 +127,15 @@ void agregarVertice(struct nodo * origen, struct nodo * destino, char * expresio
     aux->expresion = (char*)malloc(sizeof(char) * 1000);
     if(expresion!=caracterVacio)
     {
-        strcpy(aux->expresion,expresion);
+        if(strlen(expresion)==1)
+        {
+            aux->expresion[0]=expresion[0];
+            aux->expresion[1]='\0';
+        }
+        else
+        {
+            strcpy(aux->expresion,expresion);
+        }
     }
     else{
         aux->expresion=NULL;
@@ -136,7 +152,15 @@ struct estado* agregarEstado(struct estado * listadoEstados,char*estado)
 {
     struct estado * aux = (struct estado *)malloc(sizeof(struct estado));
     aux->expresion=(char*)malloc(sizeof(char)*1000);
-    strcpy(aux->expresion,estado);
+    if( strlen(estado)==1 )
+    {
+        aux->expresion[0]=estado[0];
+        aux->expresion[1]='\0';
+    }
+    else
+    {
+        strcpy(aux->expresion,estado);
+    }
     aux->siguienteEstado = listadoEstados;
     listadoEstados = aux;
 }
@@ -147,29 +171,40 @@ struct nodo * agregarEstadosExtremos(struct nodo * listadoNodos)
     struct nodo* extremoInicial = crearNodo(identificador);
     identificador = crearCadena(atoi(listadoNodos->identificador) + 2);
     struct nodo* extremoFinal = crearNodo(identificador);
-
+    struct nodo* aux = listadoNodos;
     extremoInicial->esInicio = 1;
     extremoInicial->esFin = 1;
     
     int i;
     int tamanoListadoNodos = atoi(listadoNodos->identificador);
-    for(i=0;i<tamanoListadoNodos;i++)
+    while( aux!=NULL)
     {
-        strcpy(listadoNodos[i].identificador, crearCadena(atoi(listadoNodos[i].identificador) + 1));
+        identificador = crearCadena(atoi(aux->identificador) + 1);
+        if( strlen(identificador)==1 )
+        {
+            aux->identificador[0]=identificador[0];
+            aux->identificador[1]='\0';
+        }
+        else
+        {
+            strcpy(aux->identificador, identificador);
+        }
         if( listadoNodos[i].esInicio == 1 )
         {
-            agregarVertice(extremoInicial,&listadoNodos[i],caracterVacio);
+            agregarVertice(extremoInicial,aux,caracterVacio);
             listadoNodos[i].esInicio=0;
         }
         if( listadoNodos[i].esFin == 1 )
         {
-            agregarVertice(&listadoNodos[i],extremoFinal,caracterVacio);
+            agregarVertice(aux,extremoFinal,caracterVacio);
             listadoNodos[i].esFin=0;
         }
+        aux=aux->siguienteNodo;
     }
 
-    listadoNodos[tamanoListadoNodos-1].siguienteNodo = extremoInicial;
-    extremoFinal->siguienteNodo = &listadoNodos[0];
+    aux = ultimoNodo(listadoNodos);
+    aux->siguienteNodo=extremoInicial;
+    extremoFinal->siguienteNodo = listadoNodos;
     listadoNodos = extremoFinal;
 
     return listadoNodos;
@@ -178,7 +213,8 @@ char *** crearDiagramaEstado(struct nodo * listadoNodos)
 {
     int tamanoListadoNodos = atoi(listadoNodos->identificador);
     int i,j;
-    char *** diagramaEstado = (char***)malloc(sizeof(char**) * tamanoListadoNodos);
+    char*** diagramaEstado = (char***)malloc(sizeof(char**) * tamanoListadoNodos);
+    char* identificador = (char*)malloc(sizeof(char) * 1000);
     struct vertice * iteracionVertice;
     struct nodo * destinoVertice;
     for( i = 0; i < tamanoListadoNodos; i++)
@@ -202,7 +238,18 @@ char *** crearDiagramaEstado(struct nodo * listadoNodos)
         while( iteracionVertice != NULL )
         {
             destinoVertice = iteracionVertice->destino;
-            strcpy(iteracionVertice->expresion,diagramaEstado[i][atoi(destinoVertice->identificador)]);
+
+            strcpy(identificador, diagramaEstado[i][atoi(destinoVertice->identificador)]);
+            if(strlen(identificador)==1)
+            {
+                iteracionVertice->expresion[0]=identificador[0];
+                iteracionVertice->expresion[1]='\0';
+            }
+            else
+            {
+                strcpy(iteracionVertice->expresion,identificador);
+            }
+            
             iteracionVertice = iteracionVertice->siguienteVertice;
         }
     }
@@ -217,7 +264,15 @@ struct nodo * renombrarNodos(struct nodo* DFA)
     while(aux!=NULL)
     {
         identificador=crearCadena(i);
-        strcpy(aux->identificador,identificador);
+        if(strlen(identificador)==1)
+        {
+            aux->identificador[0]=identificador[0];
+            aux->identificador[1]='\0';
+        }
+        else
+        {
+            strcpy(aux->identificador,identificador);
+        }
         i++;
         aux=aux->siguienteNodo;
     }
@@ -234,13 +289,30 @@ void subconjuntoMinimizadoIniciales(struct nodo* subconjuntoMinimizado, struct n
         {
             subconjuntoFin = agregarNodo(subconjuntoFin,0);
             subconjuntoFin->esFin = 1;
-            strcpy(subconjuntoFin->identificador,aux->identificador);
+            if(strlen(aux->identificador)==1)
+            {
+                subconjuntoFin->identificador[0]=aux->identificador[0];
+                subconjuntoFin->identificador[1]='\0';
+            }
+            else
+            {
+                strcpy(subconjuntoFin->identificador,aux->identificador);
+            }
             subconjuntoFin->listaVertices = aux->listaVertices;
         }
         else
         {
             subconjuntoResto = agregarNodo(subconjuntoResto,0);
-            strcpy(subconjuntoResto->identificador,aux->identificador);
+            if(strlen(aux->identificador)==1)
+            {
+                subconjuntoResto->identificador[0]=aux->identificador[0];
+                subconjuntoResto->identificador[1]='\0';
+            }
+            else
+            {
+                strcpy(subconjuntoResto->identificador,aux->identificador);
+            }
+            
             subconjuntoResto->listaVertices = aux->listaVertices;
         }
         aux = aux->siguienteNodo;
@@ -268,7 +340,15 @@ int subconjuntoAjeno( struct nodo* subconjuntoMinimizado )
     int ajenoEncontrado = 0;
     while( verticeAux != NULL )
     {
-        strcpy(identificador,verticeAux->destino->identificador);
+        if(strlen(verticeAux->destino->identificador)==1)
+        {
+            identificador[0]=verticeAux->destino->identificador[0];
+            identificador[1]='\0';
+        }
+        else
+        {
+            strcpy(identificador,verticeAux->destino->identificador);
+        }
         if( !verificarMismoSubconjunto(subconjuntoMinimizado,identificador) )
         {
             if (ajenoEncontrado==0)
@@ -312,7 +392,7 @@ struct nodo* DFA_a_DFA_Minimizado(struct nodo* DFA)
     aux = subconjuntoMinimizado;
     while (aux != NULL)
     {
-        strcpy(identificador, identificadorSubconjunto(aux));
+        identificador = identificadorSubconjunto(aux);
         minimizado = agregarNodo(minimizado, identificador);
         aux = aux->siguienteNodo;
     }
@@ -367,9 +447,17 @@ void agregarEstados(struct estado * listadoEstados,struct nodo * listadoNodos)
     while( nodoAux != NULL )
     {
         iteracionVertice = nodoAux->listaVertices;
-        while (iteracionVertice != NULL)
+        while (iteracionVertice != NULL && iteracionVertice->expresion != caracterVacio)
         {
-            strcpy(expresion,iteracionVertice->expresion);
+            if(strlen(iteracionVertice->expresion)==1)
+            {
+                expresion[0]=iteracionVertice->expresion[0];
+                expresion[1]='\0';
+            }
+            else
+            {
+                strcpy(expresion,iteracionVertice->expresion);
+            }
             if( esDiferente(listadoEstados,expresion) )
             {
                 listadoEstados = agregarEstado(listadoEstados,expresion);
@@ -515,7 +603,15 @@ struct nodo * NFA_a_DFA(struct nodo * listadoNodos)
         estado = listadoEstados;
         while (estado != NULL)
         {
-            strcpy(expresion, estado->expresion);
+            if(strlen(estado->expresion)==1)
+            {
+                expresion[0]=estado->expresion[0];
+                expresion[1]='\0';
+            }
+            else
+            {
+                strcpy(expresion, estado->expresion);
+            }
             nodoAux = mover(iteracionDFA, expresion);
             nodoAux = epsilonCerrar(listadoNodos,nodoAux);
             identificador = identificadorSubconjunto(nodoAux);
@@ -548,7 +644,15 @@ char *** reducirNFA(char *** diagramaEstado, int tamanoListadoNodos, int tamanoA
             diagramaAuxiliar[i][j] = (char*)malloc(sizeof(char) * 1000);
         }
     }
-    strcpy(expresionCiclo,diagramaEstado[tamanoAux-1][tamanoAux-1]);
+    if(strlen(diagramaEstado[tamanoAux-1][tamanoAux-1])==1)
+    {
+        expresionCiclo[0]=diagramaEstado[tamanoAux-1][tamanoAux-1][0];
+        expresionCiclo[1]='\0';
+    }
+    else
+    {
+        strcpy(expresionCiclo,diagramaEstado[tamanoAux-1][tamanoAux-1]);
+    }
     if(expresionCiclo!=caracterVacio)
     {
         strcpy(expresionCiclo,strcat(&aperturaParentesis,expresionCiclo));
@@ -560,14 +664,30 @@ char *** reducirNFA(char *** diagramaEstado, int tamanoListadoNodos, int tamanoA
     {
         for( j = 0; j < tamanoAux; j++ )
         {
-            strcpy(diagramaAuxiliar[i][j],diagramaEstado[i][j]);
+            if(strlen(diagramaEstado[i][j])==1)
+            {
+                diagramaAuxiliar[i][j][0]=diagramaEstado[i][j][0];
+                diagramaAuxiliar[i][j][1]='\0';
+            }
+            else
+            {
+                strcpy(diagramaAuxiliar[i][j],diagramaEstado[i][j]);
+            }
         }
     }
     for( j = 0; j < tamanoListadoNodos; j++ )
     {
         if(j!=tamanoAux&&diagramaEstado[tamanoAux-1][j]!=caracterVacio)
         {
-            strcpy(expresionDestino,diagramaEstado[tamanoAux-1][j]);
+            if(strlen(diagramaEstado[tamanoAux-1][j])==1)
+            {
+                expresionDestino[0]=diagramaEstado[tamanoAux-1][j][0];
+                expresionDestino[1]='\0';
+            }
+            else
+            {
+                strcpy(expresionDestino,diagramaEstado[tamanoAux-1][j]);
+            }
             for( i = 0; i < tamanoListadoNodos; i++ )
             {
                 if(i!=tamanoAux&&diagramaEstado[i][tamanoAux-1]!=caracterVacio)
@@ -797,7 +917,8 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo * thompson, char * regex)
         }
         else
         {
-            strcpy(expresion, &simboloActual);
+            expresion[0] = simboloActual;
+            expresion[1] = '\0';
             if (strlen(expresion) != 0)
             {
                 if (thompson == NULL)
