@@ -10,6 +10,8 @@ struct nodo
     char* identificador;
     struct vertice* listaVertices;
     struct nodo* siguienteNodo;
+    struct nodo* anteriorNodo;
+    struct nodo* primerElemento;
 };
 struct vertice
 {
@@ -47,7 +49,6 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo* thompson, char* regex);
 struct nodo* mover(struct nodo* listadoNodos, char* expresion);
 struct nodo* Regex_a_NFA_Thompson(struct nodo* thompson, char* regex);
 struct nodo* renombrarNodos(struct nodo* DFA);
-struct nodo* ultimoNodo(struct nodo* thompson);
 void agregarVertice(struct nodo* origen, struct nodo* destino, char* expresion);
 void reiniciarVisibilidad(struct nodo* listadoNodos);
 void subconjuntoMinimizadoIniciales(struct nodo* subconjuntoMinimizado, struct nodo* DFA);
@@ -58,17 +59,10 @@ struct nodo * crearNodo(char * identificador)
     n->esInicio      = 0;
     n->identificador = (char*)malloc(sizeof(char) * 1000);
     n->esFin         = 0;
-    if(strlen(identificador)==1)
-    {
-        n->identificador[0]=identificador[0];
-        n->identificador[1]='\0';
-    }
-    else
-    {
-        strcpy(n->identificador, identificador);
-    }
+    sprintf(n->identificador,"%s",identificador);
     n->listaVertices = NULL;
     n->siguienteNodo = NULL;
+    n->primerElemento = NULL;
     return n;
 }
 struct nodo* agregarNodo(struct nodo * listadoNodos,char * identificador)
@@ -77,8 +71,14 @@ struct nodo* agregarNodo(struct nodo * listadoNodos,char * identificador)
     if( listadoNodos == NULL )
     {
         aux->esInicio = 1;
+        aux->primerElemento = aux;
     }
-    aux->siguienteNodo = listadoNodos;
+    else
+    {
+        aux->siguienteNodo = listadoNodos;
+        aux->primerElemento = listadoNodos->primerElemento;
+        listadoNodos->anteriorNodo = aux;
+    }
     listadoNodos = aux;
     return aux;
 }
@@ -165,7 +165,7 @@ struct nodo * agregarEstadosExtremos(struct nodo * listadoNodos)
         aux=aux->siguienteNodo;
     }
 
-    aux = ultimoNodo(listadoNodos);
+    aux = listadoNodos->primerElemento;
     aux->siguienteNodo=extremoInicial;
     extremoFinal->siguienteNodo = listadoNodos;
     listadoNodos = extremoFinal;
@@ -529,6 +529,7 @@ struct nodo* agregarSubconjunto(struct nodo* DFA, char* identificador, char* exp
             DFA = agregarNodo(DFA,identificador);
             nuevoNodo = DFA;
             agregarVertice(nuevoNodo,auxDFA,expresion);
+            break;
         }
         else
         {
@@ -549,7 +550,7 @@ char* identificadorSubconjunto(struct nodo* subconjunto)
     while (aux != NULL)
     {
         strcat(identificador, aux->identificador);
-        strcat(identificador, &separador);
+        identificador[strlen(identificador)]=separador;
         aux=aux->siguienteNodo;
     }
     return identificador;
@@ -566,7 +567,7 @@ struct nodo * NFA_a_DFA(struct nodo * listadoNodos)
     listadoNodos = renombrarNodos(listadoNodos);
     listadoEstados = agregarEstados(listadoEstados, listadoNodos);
 
-    nodoAux = epsilonCerrar(listadoNodos,ultimoNodo(listadoNodos));
+    nodoAux = epsilonCerrar(listadoNodos,listadoNodos->primerElemento);
     identificador = identificadorSubconjunto(nodoAux);
     DFA = agregarSubconjunto(DFA, identificador,caracterVacio);
     iteracionDFA = DFA;
@@ -587,7 +588,7 @@ struct nodo * NFA_a_DFA(struct nodo * listadoNodos)
             nodoAux = mover(iteracionDFA, expresion);
             nodoAux = epsilonCerrar(listadoNodos,nodoAux);
             identificador = identificadorSubconjunto(nodoAux);
-            agregarSubconjunto(DFA, identificador,expresion);
+            DFA = agregarSubconjunto(DFA, identificador,expresion);
             estado = estado->siguienteEstado;
         }
         iteracionDFA = iteracionDFA->siguienteNodo;
@@ -709,20 +710,6 @@ char * NFA_a_Regex(struct nodo * listadoNodos)
     strcpy(regex,diagramaEstado[0][1]);
     return regex;
 }
-
-struct nodo* ultimoNodo(struct nodo* thompson)
-{
-    struct nodo* aux = thompson;
-    while(aux!=NULL)
-    {
-        if(aux->siguienteNodo==NULL)
-        {
-            break;
-        }
-        aux = aux->siguienteNodo;
-    }
-    return aux;
-}
 long long  visitarParentesis(char * regex)
 {
     long long  posicionParentesis = -1;
@@ -773,30 +760,45 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo * thompson, char * regex)
         return NULL;
     }
 
-    strncpy(regexParentesis,&regex[aperturaParentesisA],cerraduraParentesisA+1);
+    strncpy(regexParentesis,&regex[aperturaParentesisA],cerraduraParentesisA+1);    
     cerraduraNodoA = Regex_a_NFA_Thompson(cerraduraNodoA,regexParentesis);
-    aperturaNodoA = ultimoNodo(cerraduraNodoA);
-    aperturaNodoA->siguienteNodo = thompson;
-    thompson = cerraduraNodoA;
+    aperturaNodoA = cerraduraNodoA->primerElemento;
 
     strncpy(regexParentesis,&regex[aperturaParentesisB],cerraduraParentesisB);
-    cerraduraNodoB = NFA_Thompson_Parentesis(aperturaNodoB,regexParentesis);
-    aperturaNodoB = ultimoNodo(cerraduraNodoB);
-    aperturaNodoB->siguienteNodo = thompson;
-    thompson = cerraduraNodoB;
+    cerraduraNodoB = NFA_Thompson_Parentesis(cerraduraNodoB,regexParentesis);
+    aperturaNodoB = cerraduraNodoB->primerElemento;
 
-    thompson = agregarNodo(thompson,identificador);
-    aperturaConcatenacion = thompson;
+    cerraduraNodoA->anteriorNodo = aperturaNodoB;
+    aperturaNodoB->siguienteNodo = cerraduraNodoA;
 
-    thompson = agregarNodo(thompson,identificador);
-    cerraduraConcatenacion = thompson;
+    aperturaConcatenacion = crearNodo(identificador);
+    aperturaConcatenacion->anteriorNodo = aperturaNodoA;
+    aperturaNodoA->siguienteNodo = aperturaConcatenacion;
+
+    cerraduraConcatenacion = crearNodo(identificador);
+    cerraduraConcatenacion->siguienteNodo = cerraduraNodoB;
+    cerraduraNodoB->anteriorNodo = cerraduraConcatenacion;
 
     agregarVertice(aperturaConcatenacion,aperturaNodoA,caracterVacio);
     agregarVertice(aperturaConcatenacion,aperturaNodoB,caracterVacio);
     agregarVertice(cerraduraNodoA,cerraduraConcatenacion,caracterVacio);
     agregarVertice(cerraduraNodoB,cerraduraConcatenacion,caracterVacio);
     
-    return cerraduraConcatenacion;
+    if(thompson==NULL)
+    {
+        thompson = cerraduraConcatenacion;
+        cerraduraConcatenacion->primerElemento = aperturaConcatenacion;
+        aperturaConcatenacion->primerElemento = aperturaConcatenacion;
+    }
+    else
+    {
+        thompson->siguienteNodo = aperturaConcatenacion;
+        aperturaConcatenacion->anteriorNodo = thompson;
+        cerraduraConcatenacion->primerElemento = thompson->primerElemento;
+        aperturaConcatenacion->primerElemento = thompson->primerElemento;
+    }
+
+    return thompson;
 }
 struct nodo* NFA_Thompson_Estrella(struct nodo * thompson, char * regex)
 {
@@ -816,23 +818,39 @@ struct nodo* NFA_Thompson_Estrella(struct nodo * thompson, char * regex)
     }
     
     strncpy(regexParentesis,&regex[aperturaParentesis],cerraduraParentesis+1);
+    
     cerraduraNodo = Regex_a_NFA_Thompson(cerraduraNodo,regexParentesis);
-    aperturaNodo = ultimoNodo(cerraduraNodo);
-    aperturaNodo->siguienteNodo = thompson;
-    thompson = cerraduraNodo;
+    aperturaNodo = cerraduraNodo->primerElemento;
+    
+    aperturaEstrella = crearNodo(identificador);
+    aperturaEstrella->anteriorNodo = aperturaNodo;
+    aperturaNodo->siguienteNodo = aperturaEstrella;
 
-    thompson = agregarNodo(thompson,identificador);
-    aperturaEstrella = thompson;
-
-    thompson = agregarNodo(thompson,identificador);
-    cerraduraEstrella = thompson;
+    cerraduraEstrella = crearNodo(identificador);
+    cerraduraEstrella->siguienteNodo = cerraduraNodo;
+    cerraduraNodo->anteriorNodo = cerraduraEstrella;
+    
 
     agregarVertice(aperturaEstrella,cerraduraEstrella,caracterVacio);
     agregarVertice(aperturaEstrella,aperturaNodo,caracterVacio);
     agregarVertice(cerraduraNodo,aperturaNodo,caracterVacio);
     agregarVertice(cerraduraNodo,cerraduraEstrella,caracterVacio);
+
+    if(thompson==NULL)
+    {
+        thompson = cerraduraEstrella;
+        cerraduraEstrella->primerElemento = aperturaEstrella;
+        aperturaEstrella->primerElemento = aperturaEstrella;
+    }
+    else
+    {
+        thompson->siguienteNodo = aperturaEstrella;
+        aperturaEstrella->anteriorNodo = thompson;
+        cerraduraEstrella->primerElemento = thompson->primerElemento;
+        aperturaEstrella->primerElemento = thompson->primerElemento;
+    }
     
-    return cerraduraEstrella;
+    return thompson;
 }
 struct nodo* NFA_Thompson_Parentesis(struct nodo * thompson, char * regex)
 {
