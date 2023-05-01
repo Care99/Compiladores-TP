@@ -450,34 +450,55 @@ struct nodo* mover(struct nodo * listadoNodos, char * expresion)
 struct nodo* epsilonCerrar(struct nodo * listadoNodos,struct nodo * estadosIniciales)
 {
     char* identificador = (char*)malloc(sizeof(char) * 1000);
-    struct nodo* subconjunto=(struct nodo**)malloc(sizeof(struct nodo*) * 1000);
+    struct nodo* subconjunto=(struct nodo*)malloc(sizeof(struct nodo) * 1000);
+    struct nodo* nodosVisitados=(struct nodo*)malloc(sizeof(struct nodo) * 1000);
     struct nodo* aux = NULL;
     struct vertice* iteracionVertice = NULL;
     reiniciarVisibilidad(listadoNodos);
     while(estadosIniciales!=NULL)
     {
         aux=estadosIniciales;
-        subconjunto = agregarNodo(subconjunto,0);
+        subconjunto = agregarNodo(subconjunto,aux->identificador);
         subconjunto->listaVertices = estadosIniciales->listaVertices;
         aux=aux->siguienteNodo;
     }
+    
     aux = estadosIniciales;
+    iteracionVertice = aux->listaVertices;
+    aux->esVisitado = 1;
+    while(iteracionVertice!=NULL)
+    {
+
+        nodosVisitados = agregarNodo(nodosVisitados,aux->identificador);
+        nodosVisitados->listaVertices = aux->listaVertices;
+
+        if (iteracionVertice->expresion==caracterVacio && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
+        {
+            iteracionVertice->destino->esVisitado = 1;
+            sprintf(identificador,"%s,%s",identificador,iteracionVertice->destino->identificador);
+        }
+        iteracionVertice=iteracionVertice->siguienteVertice;
+    }
+    aux=nodosVisitados;
     while(aux!=NULL)
     {
         iteracionVertice = aux->listaVertices;
         aux->esVisitado = 1;
         while(iteracionVertice!=NULL)
         {
+
+            nodosVisitados = agregarNodo(nodosVisitados,aux->identificador);
+            nodosVisitados->listaVertices = aux->listaVertices;
+
             if (iteracionVertice->expresion==caracterVacio && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
             {
                 iteracionVertice->destino->esVisitado = 1;
                 sprintf(identificador,"%s,%s",identificador,iteracionVertice->destino->identificador);
             }
             iteracionVertice=iteracionVertice->siguienteVertice;
-        }
-        aux = aux->siguienteNodo;
+        }   
     }
-    return identificador;
+    return subconjunto;
 }
 
 struct nodo* agregarSubconjunto(struct nodo* DFA,struct nodo* iteracionDFA, char* identificador, char* expresion)
