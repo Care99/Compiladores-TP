@@ -55,7 +55,7 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo* thompson, char* regex);
 struct nodo* Regex_a_NFA_Thompson(struct nodo* thompson, char* regex);
 struct nodo* renombrarNodos(struct nodo* DFA);
 void agregarVertice(struct nodo* origen, struct nodo* destino, char* expresion);
-void reiniciarVisibilidad(struct nodo* listadoNodos);
+struct nodo* reiniciarVisibilidad(struct nodo* listadoNodos);
 void subconjuntoMinimizadoIniciales(struct nodo* subconjuntoMinimizado, struct nodo* DFA);
 
 struct nodo* crearNodo(char* identificador)
@@ -415,7 +415,7 @@ struct estado* agregarEstados(struct estado* listadoEstados, struct nodo* listad
     }
     return listadoEstados;
 }
-void reiniciarVisibilidad(struct nodo* listadoNodos)
+struct nodo* reiniciarVisibilidad(struct nodo* listadoNodos)
 {
     struct nodo* aux = &listadoNodos[0];
     while (aux != NULL)
@@ -423,6 +423,7 @@ void reiniciarVisibilidad(struct nodo* listadoNodos)
         aux->esVisitado = 0;
         aux = aux->siguienteNodo;
     }
+    return listadoNodos;
 }
 int compararCadenas(char* expresion1,char* expresion2)
 {
@@ -453,7 +454,7 @@ struct nodo* mover(struct nodo* listadoNodos, char* expresion)
             if (compararCadenas(iteracionVertice->expresion, expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
             {
                 iteracionVertice->destino->esVisitado = 1;
-                sprintf(identificador, "%d", 0);
+                sprintf(identificador, "%s", iteracionVertice->destino->identificador);
                 nuevoEstado = agregarNodo(nuevoEstado, identificador);
                 nuevoEstado->listaVertices = aux->listaVertices->destino->listaVertices;
             }
@@ -468,11 +469,11 @@ struct nodo* mover(struct nodo* listadoNodos, char* expresion)
 struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosIniciales)
 {
     char* identificador = (char*)malloc(sizeof(char) * 1000);
-    struct nodo* subconjunto = (struct nodo*)malloc(sizeof(struct nodo) * 1000);
-    struct nodo* nodosVisitados = (struct nodo*)malloc(sizeof(struct nodo) * 1000);
+    struct nodo* subconjunto = NULL;
+    struct nodo* nodosVisitados = NULL;
     struct nodo* aux = NULL;
     struct vertice* iteracionVertice = NULL;
-    reiniciarVisibilidad(listadoNodos);
+    listadoNodos = reiniciarVisibilidad(listadoNodos);
     aux = estadosIniciales;
     while (aux != NULL)
     {
@@ -481,8 +482,6 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
         subconjunto = agregarNodo(subconjunto, identificador);
         subconjunto->listaVertices = aux->listaVertices;
 
-        nodosVisitados = agregarNodo(nodosVisitados, identificador);
-        nodosVisitados->listaVertices = aux->listaVertices;
         aux = aux->siguienteNodo;
     }
 
@@ -514,7 +513,7 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
         aux = aux->siguienteNodo;
     }
 
-    aux = nodosVisitados;
+    aux = nodosVisitados->primerElemento;
     while (aux != NULL)
     {
         iteracionVertice = aux->listaVertices;
@@ -537,7 +536,7 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
             }
             iteracionVertice = iteracionVertice->siguienteVertice;
         }
-        aux = aux->siguienteNodo;
+        aux = aux->anteriorNodo;
     }
     return subconjunto;
 }
@@ -554,7 +553,7 @@ struct nodoDFA* agregarSubconjunto(struct nodoDFA* DFA, struct nodo* iteracionDF
         auxDFA = DFA[i].identificador;
         strcpy(identificadorIteracion,auxDFA->identificador);
         i++;
-        if (strcmp(identificadorIteracion, identificadorResultante))
+        if (strcmp(identificadorIteracion, identificadorResultante)==0)
         {
             origen = iteracionDFA;
             destino = auxDFA;
@@ -642,9 +641,9 @@ struct nodo* NFA_a_DFA(struct nodo* listadoNodos)
     i=0;
     while(combinacionDFA[i].identificador!=NULL)
     {
-        strcpy(identificador,combinacionDFA->identificador->identificador);
+        strcpy(identificador,combinacionDFA[i].identificador->identificador);
         DFA = agregarNodo(DFA,identificador);
-        DFA->listaVertices = combinacionDFA->subconjunto->listaVertices;
+        DFA->listaVertices = combinacionDFA[i].identificador->listaVertices;
         i++;
     }
     return DFA;
