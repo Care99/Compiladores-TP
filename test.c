@@ -620,22 +620,38 @@ char*** reducirNFA(char*** diagramaEstado, long long  tamanoListadoNodos, long l
     char* expresionDestino = (char*)malloc(sizeof(char) * 1000);
     char* expresionNueva = (char*)malloc(sizeof(char) * 1000);
 
-    int i, j;
-
+    int i=0;
+    int j=0;
+    int iPostNodo = 0;
+    int jPostNodo = 0;
+    int nodoEliminado = tamanoAux-1;
+    int fila=0;
+    int columna=0;
     diagramaAuxiliar = (char***)malloc(sizeof(char**) * tamanoAux);
-    for (i = 0; i < tamanoAux; i++)
+    for (i = 0; i + iPostNodo < tamanoListadoNodos; i++)
     {
+        jPostNodo=0;
+        if(i>=nodoEliminado)
+        {
+            iPostNodo = 1;
+        }
+        fila=i+iPostNodo;
         diagramaAuxiliar[i] = (char**)malloc(sizeof(char*) * tamanoAux);
-        for (j = 0; j < tamanoListadoNodos; j++)
+        for (j = 0; j + jPostNodo < tamanoListadoNodos; j++)
         {
             diagramaAuxiliar[i][j] = (char*)malloc(sizeof(char) * 1000);
-            strcpy(diagramaAuxiliar[i][j], diagramaEstado[i][j]);
+            if(j>=nodoEliminado)
+            {
+                jPostNodo = 1;
+            }
+            columna=j+jPostNodo;
+            strcpy(diagramaAuxiliar[i][j], diagramaEstado[fila][columna]);
         }
     }
 
-    if(diagramaEstado[tamanoAux-1][tamanoAux-1][0]!='\0')
+    if(diagramaEstado[nodoEliminado][nodoEliminado][0]!='\0')
     {
-        strcpy(expresion, diagramaEstado[tamanoAux-1][tamanoAux-1]);
+        strcpy(expresion, diagramaEstado[nodoEliminado][nodoEliminado]);
         sprintf(expresionCiclo,"(%s)*",expresion);
     }
     else
@@ -645,38 +661,53 @@ char*** reducirNFA(char*** diagramaEstado, long long  tamanoListadoNodos, long l
 
     i=0;
     j=0;
-    for (j = 0; j < tamanoListadoNodos; j++)
+    iPostNodo=0;
+    jPostNodo=0;
+    fila=0;
+    columna=0;
+    for (j = 0; j + jPostNodo < tamanoListadoNodos; j++)
     {
-        if (j != (tamanoAux-1) && diagramaEstado[tamanoAux-1][j][0]!='\0')
+        iPostNodo=0;
+        if(j>=nodoEliminado)
         {
-            if(strcmp(diagramaEstado[tamanoAux-1][j],"ε")==0)
+            jPostNodo=1;
+        }
+        columna=j+jPostNodo;
+        if (diagramaEstado[nodoEliminado][columna][0]!='\0')
+        {
+            if(strcmp(diagramaEstado[nodoEliminado][columna],"ε")==0)
             {
                 sprintf(expresionDestino,"%c",'\0');    
             }
             else
             {
-                sprintf(expresionDestino,"(%s)",diagramaEstado[tamanoAux-1][j]);
+                sprintf(expresionDestino,"%s",diagramaEstado[nodoEliminado][columna]);
             }
-            for (i = 0; i < tamanoListadoNodos; i++)
+            for (i = 0; i + iPostNodo< tamanoListadoNodos; i++)
             {
-                if (i != (tamanoAux-1) && diagramaEstado[i][tamanoAux - 1][0]!='\0')
+                if(i>=nodoEliminado)
                 {
-                    if(strcmp(diagramaEstado[i][tamanoAux-1],"ε")==0)
+                    iPostNodo=1;
+                }
+                fila=i+iPostNodo;
+                if (diagramaEstado[fila][nodoEliminado][0]!='\0')
+                {
+                    if(strcmp(diagramaEstado[fila][nodoEliminado],"ε")==0)
                     {
                         sprintf(expresionOrigen,"%c",'\0');
                     }
                     else
                     {
-                        strcpy(expresionOrigen,diagramaEstado[i][tamanoAux-1]);
+                        strcpy(expresionOrigen,diagramaEstado[fila][nodoEliminado]);
                     }
                     
-                    if (diagramaEstado[i][j][0]!='\0')
+                    if (diagramaEstado[fila][columna][0]!='\0')
                     {
-                        sprintf(expresion,"(%s)|(%s%s%s)",diagramaEstado[i][j],expresionOrigen,expresionCiclo,expresionDestino);
+                        sprintf(expresion,"(%s)|(%s%s%s)",diagramaEstado[fila][columna],expresionOrigen,expresionCiclo,expresionDestino);
                     }
                     else
                     {
-                        sprintf(expresion,"(%s%s%s)",expresionOrigen,expresionCiclo,expresionDestino);
+                        sprintf(expresion,"%s%s%s",expresionOrigen,expresionCiclo,expresionDestino);
                     }
                     strcpy(diagramaAuxiliar[i][j],expresion);
                     sprintf(expresionOrigen,"%c",'\0');
@@ -697,9 +728,64 @@ void imprimirDiagramaEstado(char***diagramaEstado,int tamano)
     {
         for(j=0;j<tamano;j++)
         {
-            printf("%s\t\t",diagramaEstado[i][j]);
+            printf("%s,\t\t\t ",diagramaEstado[i][j]);
         }
         printf("\n");
+    }
+}
+char* corregirParentesis(char* regex)
+{
+    int i=0;
+    int posicionAperturaParentesis=0;
+    int posicionCerraduraParentesis=0;
+    int tamanoRegex = strlen(regex);
+    char* primeraMitad =(char*)malloc(sizeof(char) * 1000);
+    char* segundaMitad =(char*)malloc(sizeof(char) * 1000);
+    for(i=0;i<tamanoRegex;i++)
+    {
+        if(regex[i]=='*')
+        {
+            continue;
+        }
+        else if(regex[i]=='|')
+        {
+            continue;
+        }
+        else if(regex[i]=='(')
+        {
+            posicionAperturaParentesis=i;
+            posicionCerraduraParentesis=posicionAperturaParentesis + visitarParentesis(&regex[posicionAperturaParentesis]);
+            i=posicionCerraduraParentesis;
+        }
+        else
+        {
+            strncpy(primeraMitad,regex,i);
+            sprintf(segundaMitad,"%c",'(');
+            while( i<tamanoRegex )
+            {
+                if(regex[i]!='(')
+                {
+                    strncat(segundaMitad,&regex[i],1);
+                }else
+                {
+                    sprintf(segundaMitad,"%s%c",segundaMitad,')');
+                    sprintf(regex,"%s%s",primeraMitad,segundaMitad);
+                    sprintf(primeraMitad,"%c",'\0');
+                    sprintf(segundaMitad,"%c",'\0');
+                    i=i+1;
+                    break;
+                }
+                i++;
+                if(i==tamanoRegex)
+                {
+                    sprintf(segundaMitad,"%s%c",segundaMitad,')');
+                    sprintf(regex,"%s%s",primeraMitad,segundaMitad);
+                    sprintf(primeraMitad,"%c",'\0');
+                    sprintf(segundaMitad,"%c",'\0');
+                    return regex;
+                }
+            }
+        }
     }
 }
 char* NFA_a_Regex(struct nodo* listadoNodos)
@@ -719,14 +805,15 @@ char* NFA_a_Regex(struct nodo* listadoNodos)
     tamanoAux = tamanoListadoNodos-1;
     diagramaEstado = crearDiagramaEstado(listadoNodos);
     imprimirDiagramaEstado(diagramaEstado,tamanoListadoNodos);
-    while (tamanoAux >= 3)
+    while (tamanoAux >= 2)
     {
         diagramaEstado = reducirNFA(diagramaEstado, tamanoListadoNodos, tamanoAux);
         imprimirDiagramaEstado(diagramaEstado,tamanoAux);
         tamanoAux--;
         tamanoListadoNodos--;
     }
-    strcpy(regex, diagramaEstado[1][0]);
+    strcpy(regex, diagramaEstado[0][1]);
+    regex = corregirParentesis(regex);
     return regex;
 }
 long long  visitarParentesis(char* regex)
