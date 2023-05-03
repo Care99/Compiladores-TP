@@ -1,7 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#define caracterVacio NULL
 struct nodo
 {
     long long  esInicio;
@@ -29,6 +28,7 @@ char*** reducirNFA(char*** diagramaEstado, long long  tamanoListadoNodos, long l
 char* identificadorSubconjunto(struct nodo* subconjunto);
 char* NFA_a_Regex(struct nodo* listadoNodos);
 int compararCadenas(char* expresion1,char* expresion2);
+int esVacio(char* expresion);
 long long  esDiferente(struct estado* listadoEstados, char* expresion);
 int subconjuntoAjeno(struct nodo** subconjuntoMinimizado);
 long long  verificarMismoSubconjunto(struct nodo* subconjuntoMinimizado, char* identificador);
@@ -52,7 +52,22 @@ struct nodo* renombrarNodos(struct nodo* DFA);
 void agregarVertice(struct nodo* origen, struct nodo* destino, char* expresion);
 struct nodo* reiniciarVisibilidad(struct nodo* listadoNodos);
 struct nodo** subconjuntoMinimizadoIniciales(struct nodo** subconjuntoMinimizado, struct nodo* DFA);
-
+void imprimirDiagramaEstado(char***diagramaEstado,int tamano);
+int esVacio(char* expresion)
+{
+    if(expresion==NULL)
+    {
+        return 0;
+    }
+    char* caracterVacio = (char*)malloc(sizeof(char)*3);
+    strcpy(caracterVacio,"ε");
+    int respuesta = 0;
+    if( strcmp(expresion,caracterVacio)==0 )
+    {
+        respuesta=1;
+    }
+    return respuesta;
+}
 struct nodo* crearNodo(char* identificador)
 {
     struct nodo* n = (struct nodo*)malloc(sizeof(struct nodo));
@@ -70,7 +85,6 @@ struct nodo* agregarNodo(struct nodo* listadoNodos, char* identificador)
     struct nodo* aux = crearNodo(identificador);
     if (listadoNodos == NULL)
     {
-        aux->esInicio = 1;
         aux->primerElemento = aux;
     }
     else
@@ -85,28 +99,17 @@ struct nodo* agregarNodo(struct nodo* listadoNodos, char* identificador)
 void agregarVertice(struct nodo* origen, struct nodo* destino, char* expresion)
 {
     struct vertice* aux = (struct vertice*)malloc(sizeof(struct vertice));
+    
     aux->destino = destino;
     aux->expresion = (char*)malloc(sizeof(char) * 1000);
-    if (expresion != caracterVacio)
-    {
-        if (strlen(expresion) == 1)
-        {
-            aux->expresion[0] = expresion[0];
-            aux->expresion[1] = '\0';
-        }
-        else
-        {
-            strcpy(aux->expresion, expresion);
-        }
-    }
-    else {
-        aux->expresion = NULL;
-    }
+    strcpy(aux->expresion, expresion);
     aux->siguienteVertice = NULL;
+    
     if (origen->listaVertices != NULL)
     {
         aux->siguienteVertice = origen->listaVertices;
     }
+    
     origen->listaVertices = aux;
 }
 
@@ -130,56 +133,61 @@ struct estado* agregarEstado(struct estado* listadoEstados, char* estado)
 
 struct nodo* agregarEstadosExtremos(struct nodo* listadoNodos)
 {
+    char* caracterVacio = (char*)malloc(sizeof(char)*3);
+    strcpy(caracterVacio,"ε");
     char* identificador = (char*)malloc(sizeof(char) * 1000);
-    sprintf(identificador, "%d", 0);
-    struct nodo* extremoInicial = crearNodo(identificador);
-    sprintf(identificador, "%d", atoi(listadoNodos->identificador) + 2);
-    struct nodo* extremoFinal = crearNodo(identificador);
     struct nodo* aux = listadoNodos;
-    extremoInicial->esInicio = 1;
-    extremoInicial->esFin = 1;
+    struct nodo* extremoInicial = NULL;
+    struct nodo* extremoFinal = NULL;
 
-    long long  i = 0;
+    sprintf(identificador, "%d", 0);
+    extremoInicial = crearNodo(identificador);
+    extremoInicial->anteriorNodo = listadoNodos->primerElemento;
+    listadoNodos->primerElemento->siguienteNodo = extremoInicial;
+
+    sprintf(identificador, "%d", atoi(listadoNodos->identificador) + 2);
+    listadoNodos = agregarNodo(listadoNodos,identificador);
+    extremoFinal = listadoNodos;
+    extremoFinal->primerElemento = extremoInicial;
+
+    int i = 0;
+    listadoNodos = renombrarNodos(listadoNodos);
     while (aux != NULL)
     {
-        sprintf(identificador, "%d", atoi(aux->identificador) + 1);
-        if (strlen(identificador) == 1)
-        {
-            aux->identificador[0] = identificador[0];
-            aux->identificador[1] = '\0';
-        }
-        else
-        {
-            strcpy(aux->identificador, identificador);
-        }
-        if (listadoNodos[i].esInicio == 1)
+
+        aux->primerElemento = extremoInicial;
+
+        if (aux->esInicio == 1)
         {
             agregarVertice(extremoInicial, aux, caracterVacio);
-            listadoNodos[i].esInicio = 0;
+            aux->esInicio = 0;
         }
-        if (listadoNodos[i].esFin == 1)
+
+        if (aux->esFin == 1)
         {
             agregarVertice(aux, extremoFinal, caracterVacio);
-            listadoNodos[i].esFin = 0;
+            aux->esFin = 0;
         }
         aux = aux->siguienteNodo;
     }
 
-    aux = listadoNodos->primerElemento;
-    aux->siguienteNodo = extremoInicial;
-    extremoFinal->siguienteNodo = listadoNodos;
-    listadoNodos = extremoFinal;
+    extremoInicial->esInicio=1;
+    extremoFinal->esFin=1;
 
     return listadoNodos;
 }
 char*** crearDiagramaEstado(struct nodo* listadoNodos)
 {
-    long long  tamanoListadoNodos = atoi(listadoNodos->identificador);
-    long long  i, j;
+    int  tamanoListadoNodos = atoi(listadoNodos->identificador) + 1;
+    int  i, j;
     char*** diagramaEstado = (char***)malloc(sizeof(char**) * tamanoListadoNodos);
-    char* identificador = (char*)malloc(sizeof(char) * 1000);
+    int identificadorOrigen = 0;
+    int identificadorDestino = 0;
+    char* expresion = (char*)malloc(sizeof(char) * 1000);
     struct vertice* iteracionVertice;
-    struct nodo* destinoVertice;
+    struct nodo* origenVertice=NULL;
+    struct nodo* destinoVertice=NULL;
+
     for (i = 0; i < tamanoListadoNodos; i++)
     {
         diagramaEstado[i] = (char**)malloc(sizeof(char*) * tamanoListadoNodos);
@@ -188,33 +196,25 @@ char*** crearDiagramaEstado(struct nodo* listadoNodos)
             diagramaEstado[i][j] = (char*)malloc(sizeof(char) * 1000);
         }
     }
-    for (i = 0; i < tamanoListadoNodos; i++)
+    origenVertice = listadoNodos;
+    while(origenVertice!=NULL)
     {
-        for (j = 0; j < tamanoListadoNodos; j++)
-        {
-            diagramaEstado[i][j] = caracterVacio;
-        }
-    }
-    for (i = 0; i < tamanoListadoNodos; i++)
-    {
-        iteracionVertice = listadoNodos[i].listaVertices;
+        identificadorOrigen = atoi(origenVertice->identificador);
+        iteracionVertice = origenVertice->listaVertices;
+        
         while (iteracionVertice != NULL)
         {
             destinoVertice = iteracionVertice->destino;
-
-            strcpy(identificador, diagramaEstado[i][atoi(destinoVertice->identificador)]);
-            if (strlen(identificador) == 1)
+            identificadorDestino = atoi(destinoVertice->identificador);
+            strcpy(expresion,iteracionVertice->expresion);
+            if(strlen(diagramaEstado[identificadorOrigen][identificadorDestino])>0)
             {
-                iteracionVertice->expresion[0] = identificador[0];
-                iteracionVertice->expresion[1] = '\0';
+                sprintf(expresion,"(%s)|(%s)",diagramaEstado[identificadorOrigen][identificadorDestino],iteracionVertice->expresion);
             }
-            else
-            {
-                strcpy(iteracionVertice->expresion, identificador);
-            }
-
+            strcpy(diagramaEstado[identificadorOrigen][identificadorDestino],expresion);
             iteracionVertice = iteracionVertice->siguienteVertice;
         }
+        origenVertice=origenVertice->siguienteNodo;
     }
     return diagramaEstado;
 }
@@ -350,17 +350,9 @@ struct estado* agregarEstados(struct estado* listadoEstados, struct nodo* listad
     while (nodoAux != NULL)
     {
         iteracionVertice = nodoAux->listaVertices;
-        while (iteracionVertice != NULL && iteracionVertice->expresion != caracterVacio)
+        while (iteracionVertice != NULL && !esVacio(iteracionVertice->expresion))
         {
-            if (strlen(iteracionVertice->expresion) == 1)
-            {
-                expresion[0] = iteracionVertice->expresion[0];
-                expresion[1] = '\0';
-            }
-            else
-            {
-                strcpy(expresion, iteracionVertice->expresion);
-            }
+            strcpy(expresion, iteracionVertice->expresion);
             if (esDiferente(listadoEstados, expresion))
             {
                 listadoEstados = agregarEstado(listadoEstados, expresion);
@@ -384,12 +376,9 @@ struct nodo* reiniciarVisibilidad(struct nodo* listadoNodos)
 int compararCadenas(char* expresion1,char* expresion2)
 {
     int respuesta=0;
-    if( expresion1!=caracterVacio)
+    if( strcmp(expresion1,expresion2) == 0 )
     {
-        if( strcmp(expresion1,expresion2) == 0 )
-        {
-            respuesta=1;
-        }
+        respuesta=1;
     }
     return respuesta;
 }
@@ -456,7 +445,7 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
                 nodosVisitados->listaVertices = iteracionVertice->destino->listaVertices;
             }
 
-            if (iteracionVertice->expresion == caracterVacio && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
+            if (esVacio(iteracionVertice->expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
             {
                 strcpy(identificador, iteracionVertice->destino->identificador);
                 subconjunto = agregarNodo(subconjunto, identificador);
@@ -483,7 +472,7 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
                 nodosVisitados->listaVertices = iteracionVertice->destino->listaVertices;
             }
 
-            if (iteracionVertice->expresion == caracterVacio && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
+            if (esVacio(iteracionVertice->expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
             {
                 subconjunto = agregarNodo(subconjunto, iteracionVertice->destino->identificador);
                 subconjunto->listaVertices = iteracionVertice->destino->listaVertices;
@@ -623,16 +612,16 @@ struct nodo* NFA_a_DFA(struct nodo* listadoNodos)
 
 char*** reducirNFA(char*** diagramaEstado, long long  tamanoListadoNodos, long long  tamanoAux)
 {
+    char*** diagramaAuxiliar;
+
+    char* expresion = (char*)malloc(sizeof(char) * 1000);
     char* expresionOrigen = (char*)malloc(sizeof(char) * 1000);
     char* expresionCiclo = (char*)malloc(sizeof(char) * 1000);
     char* expresionDestino = (char*)malloc(sizeof(char) * 1000);
     char* expresionNueva = (char*)malloc(sizeof(char) * 1000);
-    char aperturaParentesis = '(';
-    char cerraduraParentesis = ')';
-    char estrella = '*';
-    char concatenacion = '|';
-    char*** diagramaAuxiliar;
-    long long  i, j;
+
+    int i, j;
+
     diagramaAuxiliar = (char***)malloc(sizeof(char**) * tamanoAux);
     for (i = 0; i < tamanoAux; i++)
     {
@@ -640,99 +629,104 @@ char*** reducirNFA(char*** diagramaEstado, long long  tamanoListadoNodos, long l
         for (j = 0; j < tamanoListadoNodos; j++)
         {
             diagramaAuxiliar[i][j] = (char*)malloc(sizeof(char) * 1000);
+            strcpy(diagramaAuxiliar[i][j], diagramaEstado[i][j]);
         }
     }
-    if (strlen(diagramaEstado[tamanoAux - 1][tamanoAux - 1]) == 1)
+
+    if(diagramaEstado[tamanoAux-1][tamanoAux-1][0]!='\0')
     {
-        expresionCiclo[0] = diagramaEstado[tamanoAux - 1][tamanoAux - 1][0];
-        expresionCiclo[1] = '\0';
+        strcpy(expresion, diagramaEstado[tamanoAux-1][tamanoAux-1]);
+        sprintf(expresionCiclo,"(%s)*",expresion);
     }
     else
     {
-        strcpy(expresionCiclo, diagramaEstado[tamanoAux - 1][tamanoAux - 1]);
+        sprintf(expresionCiclo,"%c",'\0');
     }
-    if (expresionCiclo != caracterVacio)
-    {
-        strcpy(expresionCiclo, strcat(&aperturaParentesis, expresionCiclo));
-        strcpy(expresionCiclo, &cerraduraParentesis);
-        strcpy(expresionCiclo, &estrella);
-        aperturaParentesis = '(';
-    }
-    for (i = 0; i < tamanoAux; i++)
-    {
-        for (j = 0; j < tamanoAux; j++)
-        {
-            if (strlen(diagramaEstado[i][j]) == 1)
-            {
-                diagramaAuxiliar[i][j][0] = diagramaEstado[i][j][0];
-                diagramaAuxiliar[i][j][1] = '\0';
-            }
-            else
-            {
-                strcpy(diagramaAuxiliar[i][j], diagramaEstado[i][j]);
-            }
-        }
-    }
+
+    i=0;
+    j=0;
     for (j = 0; j < tamanoListadoNodos; j++)
     {
-        if (j != tamanoAux && diagramaEstado[tamanoAux - 1][j] != caracterVacio)
+        if (j != (tamanoAux-1) && diagramaEstado[tamanoAux-1][j][0]!='\0')
         {
-            if (strlen(diagramaEstado[tamanoAux - 1][j]) == 1)
+            if(strcmp(diagramaEstado[tamanoAux-1][j],"ε")==0)
             {
-                expresionDestino[0] = diagramaEstado[tamanoAux - 1][j][0];
-                expresionDestino[1] = '\0';
+                sprintf(expresionDestino,"%c",'\0');    
             }
             else
             {
-                strcpy(expresionDestino, diagramaEstado[tamanoAux - 1][j]);
+                sprintf(expresionDestino,"(%s)",diagramaEstado[tamanoAux-1][j]);
             }
             for (i = 0; i < tamanoListadoNodos; i++)
             {
-                if (i != tamanoAux && diagramaEstado[i][tamanoAux - 1] != caracterVacio)
+                if (i != (tamanoAux-1) && diagramaEstado[i][tamanoAux - 1][0]!='\0')
                 {
-                    if (diagramaEstado[i][j] != caracterVacio)
+                    if(strcmp(diagramaEstado[i][tamanoAux-1],"ε")==0)
                     {
-
-                        strcpy(diagramaEstado[i][j], strcat(&aperturaParentesis, diagramaEstado[i][j]));
-                        strcat(diagramaEstado[i][j], &cerraduraParentesis);
-                        strcat(diagramaEstado[i][j], &concatenacion);
-                        aperturaParentesis = '(';
+                        sprintf(expresionOrigen,"%c",'\0');
                     }
-                    strcat(diagramaEstado[i][j], &aperturaParentesis);
-                    strcpy(expresionOrigen, diagramaEstado[i][tamanoAux - 1]);
-                    strcpy(expresionNueva, expresionOrigen);
-                    strcat(expresionNueva, expresionCiclo);
-                    strcat(expresionNueva, expresionDestino);
-                    strcpy(diagramaEstado[i][j], expresionNueva);
-                    strcat(diagramaEstado[i][j], &cerraduraParentesis);
+                    else
+                    {
+                        strcpy(expresionOrigen,diagramaEstado[i][tamanoAux-1]);
+                    }
+                    
+                    if (diagramaEstado[i][j][0]!='\0')
+                    {
+                        sprintf(expresion,"(%s)|(%s%s%s)",diagramaEstado[i][j],expresionOrigen,expresionCiclo,expresionDestino);
+                    }
+                    else
+                    {
+                        sprintf(expresion,"(%s%s%s)",expresionOrigen,expresionCiclo,expresionDestino);
+                    }
+                    strcpy(diagramaAuxiliar[i][j],expresion);
+                    sprintf(expresionOrigen,"%c",'\0');
+                    sprintf(expresionCiclo,"%c",'\0');
+                    sprintf(expresionDestino,"%c",'\0');
                 }
             }
         }
     }
-    return diagramaEstado;
+    return diagramaAuxiliar;
+}
+void imprimirDiagramaEstado(char***diagramaEstado,int tamano)
+{
+    int i=0;
+    int j=0;
+    printf("tabla %d x %d\n",tamano,tamano);
+    for(i=0;i<tamano;i++)
+    {
+        for(j=0;j<tamano;j++)
+        {
+            printf("%s\t\t",diagramaEstado[i][j]);
+        }
+        printf("\n");
+    }
 }
 char* NFA_a_Regex(struct nodo* listadoNodos)
 {
-    long long  tamanoListadoNodos = 0;
+    long long  tamanoListadoNodos = atoi(listadoNodos->identificador);
     long long  tamanoAux = 0;
-    char*** diagramaEstado = crearDiagramaEstado(listadoNodos);
+    char*** diagramaEstado = NULL;
     char* regex = (char*)malloc(sizeof(char) * 1000);
-    if (tamanoListadoNodos < 2)
+    if (tamanoListadoNodos < 1)
     {
         printf("El NFA cuenta con menos de dos nodos.");
-        return 0;
+        return NULL;
     }
 
     listadoNodos = agregarEstadosExtremos(listadoNodos);
-    tamanoListadoNodos = atoi(listadoNodos->identificador);
-    tamanoAux = tamanoListadoNodos;
+    tamanoListadoNodos = atoi(listadoNodos->identificador)+1;
+    tamanoAux = tamanoListadoNodos-1;
     diagramaEstado = crearDiagramaEstado(listadoNodos);
-    while (tamanoAux > 3)
+    imprimirDiagramaEstado(diagramaEstado,tamanoListadoNodos);
+    while (tamanoAux >= 3)
     {
-        tamanoAux--;
         diagramaEstado = reducirNFA(diagramaEstado, tamanoListadoNodos, tamanoAux);
+        imprimirDiagramaEstado(diagramaEstado,tamanoAux);
+        tamanoAux--;
+        tamanoListadoNodos--;
     }
-    strcpy(regex, diagramaEstado[0][1]);
+    strcpy(regex, diagramaEstado[1][0]);
     return regex;
 }
 long long  visitarParentesis(char* regex)
@@ -774,6 +768,8 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo* thompson, char* regex)
     struct nodo* cerraduraConcatenacion = NULL;
     char* identificador = (char*)malloc(sizeof(char) * 1000);
     char* regexParentesis = (char*)malloc(sizeof(char) * 1000);
+    char* caracterVacio = (char*)malloc(sizeof(char)*3);
+    strcpy(caracterVacio,"ε");
     sprintf(identificador, "%d", 0);
     long long  aperturaParentesisA = 0;
     long long  cerraduraParentesisA = visitarParentesis(&regex[aperturaParentesisA]);
@@ -833,7 +829,9 @@ struct nodo* NFA_Thompson_Estrella(struct nodo* thompson, char* regex)
     struct nodo* cerraduraEstrella = NULL;
     char* identificador = (char*)malloc(sizeof(char) * 1000);
     sprintf(identificador, "%d", 0);
-    char* regexParentesis = (char*)malloc(sizeof(char) * 1000);;
+    char* regexParentesis = (char*)malloc(sizeof(char) * 1000);
+    char* caracterVacio = (char*)malloc(sizeof(char)*3);
+    strcpy(caracterVacio,"ε");
     long long  aperturaParentesis = 0;
     long long  cerraduraParentesis = visitarParentesis(&regex[aperturaParentesis]);
     if (cerraduraParentesis < 1)
@@ -1005,54 +1003,80 @@ long long  exponente(long long  base, long long  exponente)
 }
 int  main()
 {
-    //char* identificador=(char*)malloc(sizeof(char) * 1000);
-    //char* expresion=(char*)malloc(sizeof(char) * 1000);
+    char* identificador=(char*)malloc(sizeof(char) * 1000);
+    char* expresion=(char*)malloc(sizeof(char) * 1000);
     char* regex = (char*)malloc(sizeof(char) * 1000);
     struct nodo* listadoNodos = NULL;
-    //struct nodo* nodoInicial = NULL;
-    //struct nodo* nodoFinal = NULL;
-    //long long  i = 0;
-    //long long  j = 0;
-    //long long  inicio = 0;
-    //long long  fin = 11;
-    //sprintf(identificador,"%d",0);
-    //agregarNodo(listadoNodos, identificador);
-    //listadoNodos->esInicio = 1;
-    //nodoInicial = listadoNodos;
-    //sprintf(identificador,"%d",1);
-    //agregarNodo(listadoNodos, identificador);
-    //listadoNodos->esFin = 1;
-    //nodoFinal = listadoNodos;
-    //strcpy(expresion, (char*)'a');
-    //agregarVertice(nodoInicial, nodoFinal, expresion);
+    struct nodo* nodoInicial = NULL;
+    struct nodo* nodoA = NULL;
+    struct nodo* nodoB = NULL;
+    struct nodo* nodoFinal = NULL;
+    long long  i = 0;
+    long long  j = 0;
+    long long  inicio = 0;
+    long long  fin = 11;
+    sprintf(identificador,"%d",0);
+    
+    listadoNodos = agregarNodo(listadoNodos, identificador);
+    listadoNodos->esInicio = 1;
+    nodoInicial = listadoNodos;
+
+    sprintf(identificador,"%d",1);
+    listadoNodos = agregarNodo(listadoNodos,identificador);
+    nodoA = listadoNodos;
+
+    sprintf(identificador,"%d",2);
+    listadoNodos = agregarNodo(listadoNodos,identificador);
+    nodoB = listadoNodos;
+    
     /*
-        for (i = 0; i < 12; i++)
+    for (i = 0; i < 12; i++)
+    {
+        sprintf(identificador,"%d",i);
+        agregarNodo(listadoNodos,identificador);
+    }
+    i=0;
+    for (j = 1; j < 11; j++)
+    {
+        identificador = sprintf(identificador,"%d",i);
+        agregarVertice( &listadoNodos[i], &listadoNodos[j], identificador );
+    }
+    for (i = 1; i < 11; i++)
+    {
+        for (j = 1; j < 12; j++)
         {
-            sprintf(identificador,"%d",i);
-            agregarNodo(listadoNodos,identificador);
-        }
-        i=0;
-        for (j = 1; j < 11; j++)
-        {
-            identificador = sprintf(identificador,"%d",i);
-            agregarVertice( &listadoNodos[i], &listadoNodos[j], identificador );
-        }
-        for (i = 1; i < 11; i++)
-        {
-            for (j = 1; j < 12; j++)
+            if (i != j)
             {
-                if (i != j)
-                {
-                    identificador = sprintf(identificador,"%d",i);
-                    agregarVertice( &listadoNodos[i], &listadoNodos[j], identificador );
-                }
+                identificador = sprintf(identificador,"%d",i);
+                agregarVertice( &listadoNodos[i], &listadoNodos[j], identificador );
             }
         }
+    }
     */
+    sprintf(identificador,"%d",3);
+    listadoNodos = agregarNodo(listadoNodos, identificador);
+    listadoNodos->esFin = 1;
+    nodoFinal = listadoNodos;
+    
+    sprintf(expresion,"%c",'a');
+    agregarVertice(nodoInicial,nodoInicial,expresion);
+
+    sprintf(expresion,"%c",'b');
+    agregarVertice(nodoInicial,nodoInicial,expresion);
+
+
+    sprintf(expresion,"%c",'a');
+    agregarVertice(nodoInicial,nodoA,expresion);
+
+    sprintf(expresion,"%c",'b');
+    agregarVertice(nodoA,nodoB,expresion);
+
+    sprintf(expresion,"%c",'b');
+    agregarVertice(nodoB,nodoFinal,expresion);
     //convertir a regex
-    //char * regex = NFA_a_Regex(listadoNodos);
+    regex = NFA_a_Regex(listadoNodos);
     //convertir a NFA con el algoritmo de Thompson
-    strcpy(regex, "((a)|(b))*(abb)");
+    //strcpy(regex, "((a)|(b))*(abb)");
     listadoNodos = NULL;
     //regex = corregirRegex(regex);
     listadoNodos = Regex_a_NFA_Thompson(listadoNodos, regex);
