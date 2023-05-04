@@ -230,6 +230,10 @@ struct nodo* renombrarNodos(struct nodo* DFA)
         strcpy(aux->identificador, identificador);
         i++;
         aux = aux->anteriorNodo;
+        if(i==1000000)
+        {
+            printf(".");
+        }
     }
     return DFA;
 }
@@ -474,7 +478,8 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
 
             if (esVacio(iteracionVertice->expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
             {
-                subconjunto = agregarNodo(subconjunto, iteracionVertice->destino->identificador);
+                strcpy(identificador, iteracionVertice->destino->identificador);
+                subconjunto = agregarNodo(subconjunto, identificador);
                 subconjunto->listaVertices = iteracionVertice->destino->listaVertices;
 
                 iteracionVertice->destino->esVisitado = 1;
@@ -853,6 +858,7 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo* thompson, char* regex)
     struct nodo* cerraduraNodoB = NULL;
     struct nodo* aperturaConcatenacion = NULL;
     struct nodo* cerraduraConcatenacion = NULL;
+    struct nodo* primerNodo = NULL;
     char* identificador = (char*)malloc(sizeof(char) * numeroGrande);
     char* regexParentesis = (char*)malloc(sizeof(char) * numeroGrande);
     char* caracterVacio = (char*)malloc(sizeof(char)*3);
@@ -861,8 +867,8 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo* thompson, char* regex)
     long long  aperturaParentesisA = 0;
     long long  cerraduraParentesisA = visitarParentesis(&regex[aperturaParentesisA]);
     long long  aperturaParentesisB = cerraduraParentesisA + 2;
-    long long  cerraduraParentesisB = aperturaParentesisB + visitarParentesis(&regex[aperturaParentesisB]);
-    if (cerraduraParentesisA < 2 || cerraduraParentesisB < 6)
+    long long  cerraduraParentesisB = visitarParentesis(&regex[aperturaParentesisB]);
+    if (cerraduraParentesisA < 2 || aperturaParentesisB + cerraduraParentesisB < 6)
     {
         printf("Caracter | invalido");
         return NULL;
@@ -872,8 +878,8 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo* thompson, char* regex)
     cerraduraNodoA = Regex_a_NFA_Thompson(cerraduraNodoA, regexParentesis);
     aperturaNodoA = cerraduraNodoA->primerElemento;
 
-    strncpy(regexParentesis, &regex[aperturaParentesisB], cerraduraParentesisB);
-    cerraduraNodoB = NFA_Thompson_Parentesis(cerraduraNodoB, regexParentesis);
+    strncpy(regexParentesis, &regex[aperturaParentesisB], cerraduraParentesisB + 1);
+    cerraduraNodoB = Regex_a_NFA_Thompson(cerraduraNodoB, regexParentesis);
     aperturaNodoB = cerraduraNodoB->primerElemento;
 
     cerraduraNodoA->anteriorNodo = aperturaNodoB;
@@ -895,16 +901,17 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo* thompson, char* regex)
     if (thompson == NULL)
     {
         thompson = cerraduraConcatenacion;
-        cerraduraConcatenacion->primerElemento = aperturaConcatenacion;
-        aperturaConcatenacion->primerElemento = aperturaConcatenacion;
+        primerNodo = aperturaConcatenacion;
     }
     else
     {
-        thompson->siguienteNodo = aperturaConcatenacion;
-        aperturaConcatenacion->anteriorNodo = thompson;
-        cerraduraConcatenacion->primerElemento = thompson->primerElemento;
-        aperturaConcatenacion->primerElemento = thompson->primerElemento;
+        thompson->anteriorNodo = aperturaConcatenacion;
+        aperturaConcatenacion->siguienteNodo = thompson;
+        thompson = cerraduraConcatenacion;
+        primerNodo = thompson->primerElemento;
     }
+
+    thompson->primerElemento = primerNodo;
 
     return thompson;
 }
@@ -958,6 +965,10 @@ struct nodo* NFA_Thompson_Estrella(struct nodo* thompson, char* regex)
         aperturaEstrella->anteriorNodo = thompson;
         cerraduraEstrella->primerElemento = thompson->primerElemento;
         aperturaEstrella->primerElemento = thompson->primerElemento;
+
+        thompson->anteriorNodo = aperturaEstrella;
+        aperturaEstrella->siguienteNodo = thompson;
+        thompson = cerraduraEstrella;
     }
 
     return thompson;
@@ -977,8 +988,14 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo* thompson, char* regex)
     struct nodo* aperturaNodo = NULL;
     struct nodo* cerraduraSubParentesis = NULL;
     struct nodo* cerraduraNodo = NULL;
-
+    struct nodo* primerNodo = NULL;
     sprintf(identificador, "%d", 0);
+
+    if(thompson!=NULL)
+    {
+        primerNodo=thompson->primerElemento;
+    }
+
     for (i = 1; i < tamanoParentesisRegex; i++)
     {
         simboloActual = regex[i];
@@ -986,18 +1003,6 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo* thompson, char* regex)
         {
             aperturaParentesis = i;
             cerraduraParentesis = aperturaParentesis + visitarParentesis(&regex[aperturaParentesis]);
-            if (strlen(expresion) > 0)
-            {
-                if (thompson == NULL)
-                {
-                    thompson = agregarNodo(thompson, identificador);
-                }
-                aperturaNodo = thompson;
-                thompson = agregarNodo(thompson, identificador);
-                cerraduraNodo = thompson;
-                agregarVertice(aperturaNodo, cerraduraNodo, expresion);
-            }
-
             if (cerraduraParentesis < tamanoParentesisRegex - 1)
             {
                 simboloActual = regex[cerraduraParentesis + 1];
@@ -1012,23 +1017,21 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo* thompson, char* regex)
                     return thompson;
                 }
             }
-            thompson = cerraduraSubParentesis;
         }
         else
         {
-            expresion[0] = simboloActual;
-            expresion[1] = '\0';
-            if (strlen(expresion) != 0)
+            sprintf(expresion,"%c",regex[i]);
+            if (thompson == NULL)
             {
-                if (thompson == NULL)
-                {
-                    thompson = agregarNodo(thompson, identificador);
-                }
-                aperturaNodo = thompson;
                 thompson = agregarNodo(thompson, identificador);
-                cerraduraNodo = thompson;
-                agregarVertice(aperturaNodo, cerraduraNodo, expresion);
+                primerNodo=thompson;
+                thompson->primerElemento = primerNodo; 
             }
+            aperturaNodo = thompson;
+            thompson = agregarNodo(thompson, identificador);
+            cerraduraNodo = thompson;
+            agregarVertice(aperturaNodo, cerraduraNodo, expresion);
+            cerraduraNodo->primerElemento=primerNodo;
         }
     }
     return thompson;
@@ -1040,6 +1043,9 @@ struct nodo* Regex_a_NFA_Thompson(struct nodo* thompson, char* regex)
     long long  tamanoRegex = strlen(regex);
     long long  posicionAperturaParentesis = 0;
     long long  posicionCerraduraParentesis = 0;
+    long long  posicionAperturaParentesisB = 0;
+    long long  posicionCerraduraParentesisB = 0;
+    struct nodo* nodoParentesis = NULL;
     char simboloParentesis = '(';
     char simboloConcatenacion = '|';
     char simboloEstrella = '*';
@@ -1056,8 +1062,10 @@ struct nodo* Regex_a_NFA_Thompson(struct nodo* thompson, char* regex)
                 simboloActual = regex[posicionCerraduraParentesis + 1];
                 if (simboloActual == simboloConcatenacion)
                 {
+                    posicionAperturaParentesisB = posicionCerraduraParentesis + 2;
+                    posicionCerraduraParentesisB = posicionAperturaParentesisB + visitarParentesis(&regex[posicionAperturaParentesisB]);
                     thompson = NFA_Thompson_Concatenacion(thompson, &regex[i]);
-                    i = posicionCerraduraParentesis;
+                    i = posicionCerraduraParentesisB;
                     continue;
                 }
                 if (simboloActual == simboloEstrella)
@@ -1066,9 +1074,20 @@ struct nodo* Regex_a_NFA_Thompson(struct nodo* thompson, char* regex)
                     i = posicionCerraduraParentesis;
                     continue;
                 }
+                nodoParentesis = NFA_Thompson_Parentesis(thompson, &regex[i]);
+                thompson = nodoParentesis;
+                i = posicionCerraduraParentesis;
             }
-            thompson = NFA_Thompson_Parentesis(thompson, &regex[i]);
-            i = posicionCerraduraParentesis;
+            else
+            {
+                if(thompson!=NULL)
+                {
+                    thompson = renombrarNodos(thompson);
+                }
+                nodoParentesis = NFA_Thompson_Parentesis(thompson, &regex[i]);
+                thompson = nodoParentesis;
+                i = posicionCerraduraParentesis;
+            }
         }
     }
     return thompson;
@@ -1137,6 +1156,17 @@ int  main()
     } 
     
     origen=listadoNodos->primerElemento;
+    //convertir a regex
+    regex = NFA_a_Regex(listadoNodos);
+    
+    //convertir a NFA con el algoritmo de Thompson
+    listadoNodos = NULL;
+    
+    //regex = corregirRegex(regex);
+    sprintf(regex,"%s","((a)|(b))*(abb)");
+    listadoNodos = Regex_a_NFA_Thompson(listadoNodos, regex);
+    listadoNodos = renombrarNodos(listadoNodos);
+    origen=listadoNodos->primerElemento;
     while(origen!=NULL)
     {
         verticeAux = origen->listaVertices;
@@ -1147,19 +1177,20 @@ int  main()
         }
         origen=origen->anteriorNodo;
     }
-    //convertir a regex
-    regex = NFA_a_Regex(listadoNodos);
-    
-    //convertir a NFA con el algoritmo de Thompson
-    listadoNodos = NULL;
-    
-    //regex = corregirRegex(regex);
-    listadoNodos = Regex_a_NFA_Thompson(listadoNodos, regex);
-    
     //convertir a DFA
     listadoNodos = NFA_a_DFA(listadoNodos);
-    
+    origen=listadoNodos->primerElemento;
+    while(origen!=NULL)
+    {
+       verticeAux = origen->listaVertices;
+        while(verticeAux!=NULL)
+        {
+            printf("%s->%s->%s\n",origen->identificador,verticeAux->expresion,verticeAux->destino->identificador);
+            verticeAux=verticeAux->siguienteVertice;
+        }
+        origen=origen->anteriorNodo;
+    }    
     //convertir a DFA minimizado
-    //listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
+    listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
     return 0;
 }
