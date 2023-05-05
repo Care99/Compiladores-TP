@@ -258,6 +258,10 @@ struct nodo* renombrarNodos(struct nodo* DFA)
         aux->primerElemento=primerElemento;
         i++;
         aux = aux->anteriorNodo;
+        if(i==1000000)
+        {
+            printf(".");
+        }
     }
     return DFA;
 }
@@ -1201,6 +1205,17 @@ int  main()
     } 
     
     origen=listadoNodos->primerElemento;
+    //convertir a regex
+    regex = NFA_a_Regex(listadoNodos);
+    
+    //convertir a NFA con el algoritmo de Thompson
+    listadoNodos = NULL;
+    
+    //regex = corregirRegex(regex);
+    sprintf(regex,"%s","((a)|(b))*(abb)");
+    listadoNodos = Regex_a_NFA_Thompson(listadoNodos, regex);
+    listadoNodos = renombrarNodos(listadoNodos);
+    origen=listadoNodos->primerElemento;
     while(origen!=NULL)
     {
         verticeAux = origen->listaVertices;
@@ -1246,6 +1261,6 @@ int  main()
     //    origen=origen->anteriorNodo;
     //}    
     //convertir a DFA minimizado
-    //listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
+    listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
     return 0;
 }
