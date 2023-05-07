@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#define numeroGrande 100000
+#define numeroGrande 100000000
 struct nodo
 {
     long long  esInicio;
@@ -727,16 +727,13 @@ char*** reducirNFA(char*** diagramaEstado, long long  tamanoListadoNodos, long l
                     
                     if (diagramaEstado[fila][columna][0]!='\0'&&strcmp(diagramaEstado[fila][columna],"ε")!=0)
                     {
-                        sprintf(expresion,"(%s)|(%s%s%s)",diagramaEstado[fila][columna],expresionOrigen,expresionCiclo,expresionDestino);
+                        sprintf(expresion,"((%s)|(%s%s%s))",diagramaEstado[fila][columna],expresionOrigen,expresionCiclo,expresionDestino);
                     }
                     else
                     {
                         sprintf(expresion,"%s%s%s",expresionOrigen,expresionCiclo,expresionDestino);
                     }
                     strcpy(diagramaAuxiliar[i][j],expresion);
-                    sprintf(expresionOrigen,"%c",'\0');
-                    sprintf(expresionCiclo,"%c",'\0');
-                    sprintf(expresionDestino,"%c",'\0');
                 }
             }
         }
@@ -747,15 +744,15 @@ void imprimirDiagramaEstado(char***diagramaEstado,int tamano)
 {
     int i=0;
     int j=0;
-    printf("tabla %d x %d\n",tamano,tamano);
     for(i=0;i<tamano;i++)
     {
         for(j=0;j<tamano;j++)
         {
-            printf("%s,\t\t\t ",diagramaEstado[i][j]);
+            printf("diagramaEstado[%d][%d]:%s \n",i,j,diagramaEstado[i][j]);
         }
         printf("\n");
     }
+    printf("tabla %d x %d:\n",tamano,tamano);
 }
 char* corregirParentesis(char* regex)
 {
@@ -818,7 +815,7 @@ char* NFA_a_Regex(struct nodo* listadoNodos)
     long long  tamanoListadoNodos = atoi(listadoNodos->identificador);
     long long  tamanoAux = 0;
     char*** diagramaEstado = NULL;
-    char* regex = (char*)malloc(sizeof(char) * numeroGrande);
+    char* regex = (char*)malloc(sizeof(char) * __INT_MAX__);
     if (tamanoListadoNodos < 1)
     {
         printf("El NFA cuenta con menos de dos nodos.");
@@ -829,16 +826,16 @@ char* NFA_a_Regex(struct nodo* listadoNodos)
     tamanoListadoNodos = atoi(listadoNodos->identificador)+1;
     tamanoAux = tamanoListadoNodos-1;
     diagramaEstado = crearDiagramaEstado(listadoNodos);
-    //imprimirDiagramaEstado(diagramaEstado,tamanoListadoNodos);
+    imprimirDiagramaEstado(diagramaEstado,tamanoListadoNodos);
     while (tamanoAux >= 2)
     {
         diagramaEstado = reducirNFA(diagramaEstado, tamanoListadoNodos, tamanoAux);
-        //imprimirDiagramaEstado(diagramaEstado,tamanoAux);
+        imprimirDiagramaEstado(diagramaEstado,tamanoAux);
         tamanoAux--;
         tamanoListadoNodos--;
     }
     strcpy(regex, diagramaEstado[0][1]);
-    regex = corregirParentesis(regex);
+    //regex = corregirParentesis(regex);
     return regex;
 }
 long long  visitarParentesis(char* regex)
@@ -905,10 +902,17 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo* thompson, char* regex)
     cerraduraNodoA->anteriorNodo = aperturaNodoB;
     aperturaNodoB->siguienteNodo = cerraduraNodoA;
 
-    aperturaConcatenacion = crearNodo(identificador);
+    if(thompson==NULL)
+    {
+        aperturaConcatenacion = crearNodo(identificador);
+    }
+    else
+    {
+        aperturaConcatenacion = thompson;
+    }
     aperturaConcatenacion->anteriorNodo = aperturaNodoA;
     aperturaNodoA->siguienteNodo = aperturaConcatenacion;
-
+    
     cerraduraConcatenacion = crearNodo(identificador);
     cerraduraConcatenacion->siguienteNodo = cerraduraNodoB;
     cerraduraNodoB->anteriorNodo = cerraduraConcatenacion;
@@ -925,8 +929,6 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo* thompson, char* regex)
     else
     {
         primerNodo = thompson->primerElemento;
-        thompson->anteriorNodo = aperturaConcatenacion;
-        aperturaConcatenacion->siguienteNodo = thompson;
     }
 
     thompson = cerraduraConcatenacion;
@@ -960,7 +962,14 @@ struct nodo* NFA_Thompson_Estrella(struct nodo* thompson, char* regex)
     cerraduraNodo = Regex_a_NFA_Thompson(cerraduraNodo, regexParentesis);
     aperturaNodo = cerraduraNodo->primerElemento;
 
-    aperturaEstrella = crearNodo(identificador);
+    if(thompson==NULL)
+    {
+        aperturaEstrella = crearNodo(identificador);
+    }
+    else
+    {
+        aperturaEstrella = thompson;
+    }
     aperturaEstrella->anteriorNodo = aperturaNodo;
     aperturaNodo->siguienteNodo = aperturaEstrella;
 
@@ -981,8 +990,6 @@ struct nodo* NFA_Thompson_Estrella(struct nodo* thompson, char* regex)
     else
     {
         primerElemento = thompson->primerElemento;
-        thompson->anteriorNodo = aperturaEstrella;
-        aperturaEstrella->siguienteNodo = thompson;
     }
 
     thompson = cerraduraEstrella;
@@ -1044,20 +1051,23 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo* thompson, char* regex)
         }
         else
         {
-            sprintf(expresion,"%c",regex[i]);
-            if (thompson == NULL)
+            if(regex[i]!=')')
             {
+                sprintf(expresion,"%c",regex[i]);
+                if (thompson == NULL)
+                {
+                    thompson = agregarNodo(thompson, identificador);
+                    primerNodo=thompson;
+                }
+                
+                aperturaNodo = thompson;
+                primerNodo = thompson->primerElemento;
                 thompson = agregarNodo(thompson, identificador);
-                primerNodo=thompson;
+                cerraduraNodo = thompson;
+                
+                agregarVertice(aperturaNodo, cerraduraNodo, expresion);
+                cerraduraNodo->primerElemento=primerNodo;
             }
-            
-            aperturaNodo = thompson;
-            primerNodo = thompson->primerElemento;
-            thompson = agregarNodo(thompson, identificador);
-            cerraduraNodo = thompson;
-            
-            agregarVertice(aperturaNodo, cerraduraNodo, expresion);
-            cerraduraNodo->primerElemento=primerNodo;
         }
     }
     thompson=renombrarNodos(thompson);
@@ -1145,7 +1155,7 @@ int  main()
     int  i = 0;
     sprintf(identificador,"%d",0);
     
-    for (i = 0; i < 11; i++)
+    for (i = 0; i < 3; i++)
     {
         sprintf(identificador,"%d",i);
         listadoNodos = agregarNodo(listadoNodos,identificador);
@@ -1191,10 +1201,11 @@ int  main()
     }
     //convertir a regex
     regex = NFA_a_Regex(listadoNodos);
+    int tamanoRegex=strlen(regex);
     
     //convertir a NFA con el algoritmo de Thompson
     //sprintf(regex,"%s","((a)|(b))*(abb)");
-    listadoNodos = Regex_a_NFA_Thompson(listadoNodos, regex);
+    listadoNodos = Regex_a_NFA_Thompson(NULL, regex);
     listadoNodos = renombrarNodos(listadoNodos);
     origen=listadoNodos->primerElemento;
     while(origen!=NULL)
