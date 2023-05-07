@@ -534,26 +534,75 @@ struct nodo* agregarSubconjunto(struct nodo* DFA,struct nodo** subconjunto, stru
 char* identificadorSubconjunto(struct nodo* subconjunto)
 {
     char* identificador = (char*)malloc(sizeof(char) * numeroGrande);
-    int* hashIdentificador = (int*)malloc(sizeof(int)*numeroGrande);
+    char* primeraParte = (char*)malloc(sizeof(char) * numeroGrande);
+    char* segundaParte = (char*)malloc(sizeof(char) * numeroGrande);
     int i = 0;
-    for(i=0;i<numeroGrande;i++)
-    {
-        hashIdentificador[i]=0;
-    }
+    int j = 0;
+    int numeroActual=0;
+    int comaEncontrado=0;
+    int posicionComa=0;
     struct nodo* aux = NULL;
     aux = subconjunto;
+
     while (aux != NULL)
     {
-        hashIdentificador[atoi(aux->identificador)]=1;
+        if(identificador[0]=='\0')
+        {
+            sprintf(identificador,",%s,",aux->identificador);
+        }
+        else
+        {
+            sprintf(primeraParte,"%c",'\0');
+            sprintf(segundaParte,"%c",'\0');
+            i=0;
+            while(identificador[i]!='\0')
+            {
+                if(identificador[i]==',')
+                {
+                    if( comaEncontrado==0 )
+                    {
+                        comaEncontrado=1;
+                        posicionComa=i;
+                    }
+                    else
+                    {
+                        if( atoi(aux->identificador) < numeroActual )
+                        {
+                            for(j=0;j<=posicionComa;j++)
+                            {
+                                primeraParte[j]=identificador[j];
+                            }
+                            primeraParte[j]='\0';
+                            strcpy(segundaParte,&identificador[posicionComa+1]);
+                            sprintf(identificador,"%s%s,%s",primeraParte,aux->identificador,segundaParte);
+                            comaEncontrado=0;
+                            numeroActual=0;
+                            break;
+                        }
+                        else
+                        {
+                            posicionComa=i;
+                            numeroActual=0;
+                        }
+                    }
+                }
+                else
+                {
+                    numeroActual = numeroActual * 10 + (identificador[i]-'0');
+                }
+                i++;
+                if(identificador[i]=='\0')
+                {
+                    sprintf(identificador,"%s%s,",identificador,aux->identificador);
+                    comaEncontrado=0;
+                    numeroActual=0;
+                    break;
+                }
+            }
+        }
         aux = aux->siguienteNodo;
     }
-    for(i=0;i<numeroGrande;i++)
-    {
-        if(hashIdentificador[i]==1)
-        {
-            sprintf(identificador,"%s,%d",identificador,i);
-        }
-    }
+
     return identificador;
 }
 struct nodo* NFA_a_DFA(struct nodo* listadoNodos)
@@ -1155,7 +1204,7 @@ int  main()
     int  i = 0;
     sprintf(identificador,"%d",0);
     
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < 8; i++)
     {
         sprintf(identificador,"%d",i);
         listadoNodos = agregarNodo(listadoNodos,identificador);
@@ -1219,7 +1268,7 @@ int  main()
         origen=origen->anteriorNodo;
     }
     //convertir a DFA
-    listadoNodos = NFA_a_DFA(listadoNodos);
+    //listadoNodos = NFA_a_DFA(listadoNodos);
     //origen=listadoNodos->primerElemento;
     //while(origen!=NULL)
     //{
