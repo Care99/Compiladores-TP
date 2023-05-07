@@ -459,34 +459,9 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
         subconjunto = agregarNodo(subconjunto, identificador);
         subconjunto->listaVertices = aux->listaVertices;
 
-        aux = aux->siguienteNodo;
-    }
+        nodosVisitados = agregarNodo(nodosVisitados, identificador);
+        nodosVisitados->listaVertices = aux->listaVertices;
 
-    aux = estadosIniciales;
-    while (aux != NULL)
-    {
-        iteracionVertice = aux->listaVertices;
-        aux->esVisitado = 1;
-
-        while (iteracionVertice != NULL)
-        {
-            if (iteracionVertice->destino->esVisitado == 0)
-            {
-                strcpy(identificador, iteracionVertice->destino->identificador);
-                nodosVisitados = agregarNodo(nodosVisitados, identificador);
-                nodosVisitados->listaVertices = iteracionVertice->destino->listaVertices;
-            }
-
-            if (esVacio(iteracionVertice->expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
-            {
-                strcpy(identificador, iteracionVertice->destino->identificador);
-                subconjunto = agregarNodo(subconjunto, identificador);
-                subconjunto->listaVertices = iteracionVertice->destino->listaVertices;
-
-                iteracionVertice->destino->esVisitado = 1;
-            }
-            iteracionVertice = iteracionVertice->siguienteVertice;
-        }
         aux = aux->siguienteNodo;
     }
 
@@ -495,27 +470,27 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
     {
         iteracionVertice = aux->listaVertices;
         aux->esVisitado = 1;
+
         while (iteracionVertice != NULL)
         {
-            if (iteracionVertice->destino->esVisitado == 0)
-            {
-                strcpy(identificador, iteracionVertice->destino->identificador);
-                nodosVisitados = agregarNodo(nodosVisitados, iteracionVertice->destino->identificador);
-                nodosVisitados->listaVertices = iteracionVertice->destino->listaVertices;
-            }
 
             if (esVacio(iteracionVertice->expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
             {
                 strcpy(identificador, iteracionVertice->destino->identificador);
+                
                 subconjunto = agregarNodo(subconjunto, identificador);
                 subconjunto->listaVertices = iteracionVertice->destino->listaVertices;
-
+                
+                nodosVisitados = agregarNodo(nodosVisitados, identificador);
+                nodosVisitados->listaVertices = iteracionVertice->destino->listaVertices;
+                
                 iteracionVertice->destino->esVisitado = 1;
             }
             iteracionVertice = iteracionVertice->siguienteVertice;
         }
         aux = aux->anteriorNodo;
     }
+
     return subconjunto;
 }
 
@@ -656,7 +631,7 @@ struct nodo* NFA_a_DFA(struct nodo* listadoNodos)
         }
         nodoAux=nodoAux->anteriorNodo;
     }
-    printf("\n%d",moverFallido);
+    printf("\n%d\n",moverFallido);
     return DFA;
 }
 
@@ -1183,7 +1158,7 @@ int  main()
     destino = nodoInicial->anteriorNodo;
     while(destino != NULL)
     {
-        sprintf(expresion,"%s",destino->identificador);
+        sprintf(expresion,"%d",atoi(destino->identificador)-1);
         agregarVertice(origen,destino,expresion);
         destino->esFin=1;
         destino = destino->anteriorNodo;
@@ -1196,25 +1171,13 @@ int  main()
         {
             if( origen->identificador != destino->identificador )
             {
-                sprintf(expresion,"%s",destino->identificador);
+                sprintf(expresion,"%d",atoi(destino->identificador)-1);
                 agregarVertice(origen,destino,expresion);
             }
             destino = destino->anteriorNodo;
         }
         origen = origen->anteriorNodo;
     } 
-    
-    origen=listadoNodos->primerElemento;
-    //convertir a regex
-    regex = NFA_a_Regex(listadoNodos);
-    
-    //convertir a NFA con el algoritmo de Thompson
-    listadoNodos = NULL;
-    
-    //regex = corregirRegex(regex);
-    sprintf(regex,"%s","((a)|(b))*(abb)");
-    listadoNodos = Regex_a_NFA_Thompson(listadoNodos, regex);
-    listadoNodos = renombrarNodos(listadoNodos);
     origen=listadoNodos->primerElemento;
     while(origen!=NULL)
     {
@@ -1230,9 +1193,6 @@ int  main()
     regex = NFA_a_Regex(listadoNodos);
     
     //convertir a NFA con el algoritmo de Thompson
-    listadoNodos = NULL;
-    
-    //regex = corregirRegex(regex);
     //sprintf(regex,"%s","((a)|(b))*(abb)");
     listadoNodos = Regex_a_NFA_Thompson(listadoNodos, regex);
     listadoNodos = renombrarNodos(listadoNodos);
@@ -1261,6 +1221,6 @@ int  main()
     //    origen=origen->anteriorNodo;
     //}    
     //convertir a DFA minimizado
-    listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
+    //listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
     return 0;
 }
