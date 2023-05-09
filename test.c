@@ -243,6 +243,19 @@ char*** crearDiagramaEstado(struct nodo* listadoNodos)
         }
         origenVertice=origenVertice->siguienteNodo;
     }
+    for(i = 0; i < tamanoListadoNodos; i++)
+    {
+        if(diagramaEstado[i][i][0]!='\0')
+        {
+            sprintf(expresion,"(%s)*%c",diagramaEstado[i][i],'\0');
+            j=0;
+            while(expresion[j]!='\0')
+            {
+                diagramaEstado[i][i][j] = expresion[j];
+                j++;
+            }
+        }
+    }
     return diagramaEstado;
 }
 
@@ -1261,7 +1274,7 @@ int  main()
         *vertices:' '
     */
     destino=destino->anteriorNodo;
-    sprintf(expresion,"%c",' ');
+    sprintf(expresion,"%c",'_');
     agregarVertice(origen,destino,expresion);
     /*
         *origen: nodo 1
@@ -1278,7 +1291,7 @@ int  main()
     */
     origen = origen->anteriorNodo;
     destino = origen->anteriorNodo->anteriorNodo;
-    sprintf(expresion,"%c",'-');
+    sprintf(expresion,"%c",'a');
     agregarVertice(origen,destino,expresion);
     /*
         *origen: nodo 3
@@ -1287,7 +1300,7 @@ int  main()
     */
     origen = origen->anteriorNodo;
     destino = nodoInicial->anteriorNodo;
-    sprintf(expresion,"%c",'+');
+    sprintf(expresion,"%c",'@');
     agregarVertice(origen,destino,expresion);
     /*
         *origen: nodo 4
@@ -1296,7 +1309,7 @@ int  main()
     */
     origen = origen->anteriorNodo;
     destino = origen->siguienteNodo;
-    sprintf(expresion,"%c",' ');
+    sprintf(expresion,"%c",'_');
     agregarVertice(origen,destino,expresion);
     /*
         *origen: nodo 4
@@ -1322,10 +1335,10 @@ int  main()
 
     //convertir a DFA
     listadoNodos = NFA_a_DFA(listadoNodos);
-    imprimirNodo(listadoNodos);
+    //imprimirNodo(listadoNodos);
     
     //convertir a DFA minimizado
-    listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
-    imprimirNodo(listadoNodos);
+    //listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
+    //imprimirNodo(listadoNodos);
     return 0;
 }
