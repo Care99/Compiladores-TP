@@ -54,6 +54,7 @@ void agregarVertice(struct nodo* origen, struct nodo* destino, char* expresion);
 struct nodo* reiniciarVisibilidad(struct nodo* listadoNodos);
 struct nodo** subconjuntoMinimizadoIniciales(struct nodo** subconjuntoMinimizado, struct nodo* DFA);
 void imprimirDiagramaEstado(char***diagramaEstado,int tamano);
+void imprimirNodo(struct nodo* listadoNodos);
 int esVacio(char* expresion)
 {
     if(expresion==NULL)
@@ -449,6 +450,7 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
     struct nodo* subconjunto = NULL;
     struct nodo* nodosVisitados = NULL;
     struct nodo* aux = NULL;
+    struct nodo* nodoIdentificador = NULL;
     struct vertice* iteracionVertice = NULL;
     listadoNodos = reiniciarVisibilidad(listadoNodos);
     aux = estadosIniciales;
@@ -617,13 +619,9 @@ struct nodo* NFA_a_DFA(struct nodo* listadoNodos)
     struct estado* listadoEstados = NULL;
     struct estado* estado = NULL;
     struct nodo* DFA = NULL;
-    struct nodo** subconjunto = (struct nodo**)malloc(sizeof(struct nodo*) * 1000000);
+    struct nodo** subconjunto = (struct nodo**)calloc(1000000,sizeof(struct nodo*));
     struct nodo* iteracionDFA = NULL;
     struct vertice* auxVertice = NULL;
-    for(i=0;i<1000000;i++)
-    {
-        subconjunto[i]=NULL;
-    }
 
     listadoNodos = renombrarNodos(listadoNodos);
     listadoEstados = agregarEstados(listadoEstados, listadoNodos);
@@ -669,18 +667,7 @@ struct nodo* NFA_a_DFA(struct nodo* listadoNodos)
         i++;
     }
     DFA=renombrarNodos(DFA);
-    nodoAux=DFA->primerElemento;
-    while(nodoAux!=NULL)
-    {
-        auxVertice = nodoAux->listaVertices;
-        while(auxVertice!=NULL)
-        {
-            printf("%s->%s->%s\n",nodoAux->identificador,auxVertice->expresion,auxVertice->destino->identificador);
-            auxVertice=auxVertice->siguienteVertice;
-        }
-        nodoAux=nodoAux->anteriorNodo;
-    }
-    printf("\n%d\n",moverFallido);
+    printf("\nVertices vacios:%d\n",moverFallido);
     return DFA;
 }
 
@@ -1065,7 +1052,14 @@ struct nodo* NFA_Thompson_Parentesis(struct nodo* thompson, char* regex)
     struct nodo* cerraduraSubParentesis = NULL;
     struct nodo* cerraduraNodo = NULL;
     struct nodo* primerNodo = NULL;
-    sprintf(identificador, "%d", 0);
+    if(thompson==NULL)
+    {
+        sprintf(identificador, "%d", 0);
+    }
+    else
+    {
+        sprintf(identificador, "%d", atoi(thompson->identificador)+1);
+    }
 
     if(thompson!=NULL)
     {
@@ -1175,7 +1169,21 @@ struct nodo* Regex_a_NFA_Thompson(struct nodo* thompson, char* regex)
     thompson=renombrarNodos(thompson);
     return thompson;
 }
-
+void imprimirNodo(struct nodo* listadoNodos)
+{
+    struct nodo* origen = listadoNodos->primerElemento;
+    struct vertice* verticeAux = NULL;
+    while(origen!=NULL)
+    {
+        verticeAux = origen->listaVertices;
+        while(verticeAux!=NULL)
+        {
+            printf("%s->%s->%s\n",origen->identificador,verticeAux->expresion,verticeAux->destino->identificador);
+            verticeAux=verticeAux->siguienteVertice;
+        }
+        origen=origen->anteriorNodo;
+    }
+}
 long long  exponente(long long  base, long long  exponente)
 {
     if (exponente == 0)
@@ -1203,8 +1211,7 @@ int  main()
     struct vertice* verticeAux = NULL;
     int  i = 0;
     sprintf(identificador,"%d",0);
-    
-    for (i = 0; i < 8; i++)
+    for (i = 0; i <= 5; i++)
     {
         sprintf(identificador,"%d",i);
         listadoNodos = agregarNodo(listadoNodos,identificador);
@@ -1213,74 +1220,112 @@ int  main()
     nodoInicial = listadoNodos->primerElemento;
     nodoInicial->esInicio=1;
 
-    origen = nodoInicial; 
+    nodoFinal=listadoNodos;
+    nodoFinal->esFin=1;
+
+    /*
+        *origen: nodo 0
+        *destino: nodo 1
+        *vertices: ε
+    */
+    origen = nodoInicial;
     destino = nodoInicial->anteriorNodo;
-    while(destino != NULL)
+    sprintf(expresion,"%s","ε");
+    agregarVertice(origen,destino,expresion);
+    /*
+        *origen: nodo 1
+        *destino: nodo 1
+        *vertices:0,1,2,3,4,5,6,7
+    */
+    origen = nodoInicial->anteriorNodo; 
+    destino = nodoInicial->anteriorNodo;
+    for(i=0;i<=7;i++)
     {
-        sprintf(expresion,"%d",atoi(destino->identificador)-1);
+        sprintf(expresion,"%d",i);
         agregarVertice(origen,destino,expresion);
-        destino->esFin=1;
-        destino = destino->anteriorNodo;
     }
-    origen = nodoInicial->anteriorNodo;
-    while(origen != NULL)
+    /*
+        *origen: nodo 1
+        *destino: nodo 2
+        *vertices:8,9
+    */
+    destino=destino->anteriorNodo;
+    for(i=8;i<=9;i++)
     {
-        destino = nodoInicial->anteriorNodo;
-        while(destino!=NULL)
-        {
-            if( origen->identificador != destino->identificador )
-            {
-                sprintf(expresion,"%d",atoi(destino->identificador)-1);
-                agregarVertice(origen,destino,expresion);
-            }
-            destino = destino->anteriorNodo;
-        }
-        origen = origen->anteriorNodo;
-    } 
-    origen=listadoNodos->primerElemento;
-    while(origen!=NULL)
-    {
-        verticeAux = origen->listaVertices;
-        while(verticeAux!=NULL)
-        {
-            printf("%s->%s->%s\n",origen->identificador,verticeAux->expresion,verticeAux->destino->identificador);
-            verticeAux=verticeAux->siguienteVertice;
-        }
-        origen=origen->anteriorNodo;
+        sprintf(expresion,"%d",i);
+        agregarVertice(origen,destino,expresion);
     }
+    /*
+        *origen: nodo 1
+        *destino: nodo 3
+        *vertices:' '
+    */
+    destino=destino->anteriorNodo;
+    sprintf(expresion,"%c",' ');
+    agregarVertice(origen,destino,expresion);
+    /*
+        *origen: nodo 1
+        *destino: nodo 5
+        *vertices: ε
+    */
+    destino=nodoFinal;
+    sprintf(expresion,"%s","ε");
+    agregarVertice(origen,destino,expresion);
+    /*
+        *origen: nodo 2
+        *destino: nodo 4
+        *expresion: -
+    */
+    origen = origen->anteriorNodo;
+    destino = origen->anteriorNodo->anteriorNodo;
+    sprintf(expresion,"%c",'-');
+    agregarVertice(origen,destino,expresion);
+    /*
+        *origen: nodo 3
+        *destino: nodo 1
+        *expresion: +
+    */
+    origen = origen->anteriorNodo;
+    destino = nodoInicial->anteriorNodo;
+    sprintf(expresion,"%c",'+');
+    agregarVertice(origen,destino,expresion);
+    /*
+        *origen: nodo 4
+        *destino: nodo 3
+        *expresion: ' '
+    */
+    origen = origen->anteriorNodo;
+    destino = origen->siguienteNodo;
+    sprintf(expresion,"%c",' ');
+    agregarVertice(origen,destino,expresion);
+    /*
+        *origen: nodo 4
+        *destino: nodo 4
+        *expresion: 0,1,2,3,4,5,6,7,8,9
+    */
+    destino = origen;
+    for(i=0;i<=9;i++)
+    {
+        sprintf(expresion,"%d",i);
+        agregarVertice(origen,destino,expresion);
+    }
+    
+    imprimirNodo(listadoNodos);
+
     //convertir a regex
     regex = NFA_a_Regex(listadoNodos);
-    int tamanoRegex=strlen(regex);
+    printf("Regex: %s\n",regex);
     
     //convertir a NFA con el algoritmo de Thompson
-    //sprintf(regex,"%s","((a)|(b))*(abb)");
     listadoNodos = Regex_a_NFA_Thompson(NULL, regex);
-    listadoNodos = renombrarNodos(listadoNodos);
-    origen=listadoNodos->primerElemento;
-    while(origen!=NULL)
-    {
-        verticeAux = origen->listaVertices;
-        while(verticeAux!=NULL)
-        {
-            printf("%s->%s->%s\n",origen->identificador,verticeAux->expresion,verticeAux->destino->identificador);
-            verticeAux=verticeAux->siguienteVertice;
-        }
-        origen=origen->anteriorNodo;
-    }
+    imprimirNodo(listadoNodos);
+
     //convertir a DFA
-    //listadoNodos = NFA_a_DFA(listadoNodos);
-    //origen=listadoNodos->primerElemento;
-    //while(origen!=NULL)
-    //{
-    //    verticeAux = origen->listaVertices;
-    //    while(verticeAux!=NULL)
-    //    {
-    //        printf("%s->%s->%s\n",origen->identificador,verticeAux->expresion,verticeAux->destino->identificador);
-    //        verticeAux=verticeAux->siguienteVertice;
-    //    }
-    //    origen=origen->anteriorNodo;
-    //}    
+    listadoNodos = NFA_a_DFA(listadoNodos);
+    imprimirNodo(listadoNodos);
+    
     //convertir a DFA minimizado
-    //listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
+    listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
+    imprimirNodo(listadoNodos);
     return 0;
 }
