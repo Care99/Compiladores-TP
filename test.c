@@ -356,40 +356,58 @@ int tienenExpresionesSimilares(struct vertice* vertice1, struct vertice* vertice
     int respuesta = 1;
     while(aux1!=NULL)
     {
-        strcpy(expresion1,aux1->expresion);
-        strcpy(destino1,aux1->destino->identificador);
-        aux2=vertice2;
-        while(aux2!=NULL)
+        aux1->destino->esVisitado=1;
+        aux1=aux1->siguienteVertice;
+    }
+    aux2=vertice2;
+    while(aux2!=NULL)
+    {
+        if(aux2->destino->esVisitado!=1)
         {
-            strcpy(expresion2,aux2->expresion);
-            strcpy(destino2,aux2->destino->identificador);
-            if( strcmp(expresion1,expresion2)!=0 || strcmp(destino1,destino2)!=0 )
+            respuesta=0;
+            aux1=vertice1;
+            while(aux1!=NULL)
             {
-                respuesta=0;
-                return respuesta;
+                aux1->destino->esVisitado=0;
+                aux1=aux1->siguienteVertice;
             }
-            aux2=aux2->siguienteVertice;
+            return respuesta;
+        }
+        aux2=aux2->siguienteVertice;
+    }
+    aux1=vertice1;
+    while(aux1!=NULL)
+    {
+        aux1->destino->esVisitado=0;
+        aux1=aux1->siguienteVertice;
+    }
+
+    aux2=vertice2;
+    while(aux2!=NULL)
+    {
+        aux2->destino->esVisitado=1;
+        aux2=aux2->siguienteVertice;
+    }
+    aux1=vertice1;
+    while(aux1!=NULL)
+    {
+        if(aux1->destino->esVisitado!=1)
+        {
+            respuesta=0;
+            aux2=vertice2;
+            while(aux2!=NULL)
+            {
+                aux2->destino->esVisitado=0;
+                aux2=aux2->siguienteVertice;
+            }
+            return respuesta;
         }
         aux1=aux1->siguienteVertice;
     }
     aux2=vertice2;
     while(aux2!=NULL)
     {
-        strcpy(expresion2,aux2->expresion);
-        strcpy(destino2,aux2->expresion);
-        aux1=vertice1;
-        while(aux1!=NULL)
-        {
-            strcpy(expresion1,aux1->expresion);
-            strcpy(destino1,aux1->destino->identificador);
-            if( strcmp(expresion1,expresion2)!=0 && strcmp(destino1,destino2)!=0 )
-            {
-                respuesta=0;
-                return respuesta;
-            }
-            else
-            aux1=aux1->siguienteVertice;
-        }
+        aux2->destino->esVisitado=0;
         aux2=aux2->siguienteVertice;
     }
     return respuesta;
@@ -1059,6 +1077,7 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo* thompson, char* regex)
     char* identificador = (char*)malloc(sizeof(char) * numeroGrande);
     char* regexParentesis = (char*)malloc(sizeof(char) * numeroGrande);
     char* caracterVacio = (char*)malloc(sizeof(char)*3);
+    int i=0;
     strcpy(caracterVacio,"ε");
     sprintf(identificador, "%d", 0);
     long long  aperturaParentesisA = 0;
@@ -1070,12 +1089,21 @@ struct nodo* NFA_Thompson_Concatenacion(struct nodo* thompson, char* regex)
         printf("Caracter | invalido");
         return NULL;
     }
-
-    strncpy(regexParentesis, &regex[aperturaParentesisA], cerraduraParentesisA + 1);
+    sprintf(regexParentesis,"%c",'\0');
+    for(i=aperturaParentesisA;i<=aperturaParentesisA+cerraduraParentesisA;i++)
+    {
+        regexParentesis[i-aperturaParentesisA]=regex[i];
+    }
+    regexParentesis[i-aperturaParentesisA]='\0';
     cerraduraNodoA = Regex_a_NFA_Thompson(cerraduraNodoA, regexParentesis);
     aperturaNodoA = cerraduraNodoA->primerElemento;
 
-    strncpy(regexParentesis, &regex[aperturaParentesisB], cerraduraParentesisB + 1);
+    sprintf(regexParentesis,"%c",'\0');
+    for(i=aperturaParentesisB;i<=aperturaParentesisB+cerraduraParentesisB;i++)
+    {
+        regexParentesis[i-aperturaParentesisB]=regex[i];
+    }
+    regexParentesis[i-aperturaParentesisB]='\0';
     cerraduraNodoB = Regex_a_NFA_Thompson(cerraduraNodoB, regexParentesis);
     aperturaNodoB = cerraduraNodoB->primerElemento;
 
