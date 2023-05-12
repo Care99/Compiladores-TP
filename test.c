@@ -6,7 +6,7 @@ struct nodo
 {
     long long  esInicio;
     long long  esFin;
-    long long  esVisitado;
+    char*  esVisitado;
     char* identificador;
     struct vertice* listaVertices;
     struct nodo* siguienteNodo;
@@ -75,13 +75,18 @@ int esVacio(char* expresion)
 struct nodo* crearNodo(char* identificador)
 {
     struct nodo* n = (struct nodo*)malloc(sizeof(struct nodo));
-    n->esInicio = 0;
     n->identificador = (char*)malloc(sizeof(char) * numeroGrande);
+    n->esVisitado = (char*)malloc(sizeof(char) * numeroGrande);
+    
+    n->esInicio = 0;
     n->esFin = 0;
+    
     sprintf(n->identificador, "%s", identificador);
+    n->esVisitado[0]='\0';
     n->listaVertices = NULL;
     n->siguienteNodo = NULL;
     n->primerElemento = NULL;
+    
     return n;
 }
 struct nodo* agregarNodo(struct nodo* listadoNodos, char* identificador)
@@ -354,61 +359,29 @@ int tienenExpresionesSimilares(struct vertice* vertice1, struct vertice* vertice
     char* expresion2 = (char*)malloc(sizeof(char)*numeroGrande);
     char* destino2 = (char*)malloc(sizeof(char)*numeroGrande);
     int respuesta = 1;
-    while(aux1!=NULL)
+    while(aux1!=NULL||aux2!=NULL)
     {
-        aux1->destino->esVisitado=1;
-        aux1=aux1->siguienteVertice;
-    }
-    aux2=vertice2;
-    while(aux2!=NULL)
-    {
-        if(aux2->destino->esVisitado!=1)
+        strcpy(expresion1,aux1->expresion);
+        strcpy(expresion2,aux1->expresion);
+        strcpy(destino1,aux1->destino->identificador);
+        strcpy(destino2,aux2->destino->identificador);
+        if( strcmp(expresion1,expresion2)!=0 )
         {
             respuesta=0;
-            aux1=vertice1;
-            while(aux1!=NULL)
-            {
-                aux1->destino->esVisitado=0;
-                aux1=aux1->siguienteVertice;
-            }
             return respuesta;
         }
-        aux2=aux2->siguienteVertice;
-    }
-    aux1=vertice1;
-    while(aux1!=NULL)
-    {
-        aux1->destino->esVisitado=0;
-        aux1=aux1->siguienteVertice;
-    }
-
-    aux2=vertice2;
-    while(aux2!=NULL)
-    {
-        aux2->destino->esVisitado=1;
-        aux2=aux2->siguienteVertice;
-    }
-    aux1=vertice1;
-    while(aux1!=NULL)
-    {
-        if(aux1->destino->esVisitado!=1)
+        if( strcmp(destino1,destino2)!=0 )
         {
             respuesta=0;
-            aux2=vertice2;
-            while(aux2!=NULL)
-            {
-                aux2->destino->esVisitado=0;
-                aux2=aux2->siguienteVertice;
-            }
             return respuesta;
         }
         aux1=aux1->siguienteVertice;
-    }
-    aux2=vertice2;
-    while(aux2!=NULL)
-    {
-        aux2->destino->esVisitado=0;
         aux2=aux2->siguienteVertice;
+        if((aux1==NULL&&aux2!=NULL)||(aux1!=NULL&&aux2==NULL))
+        {
+            respuesta=0;
+            return respuesta;
+        }
     }
     return respuesta;
 }
@@ -426,6 +399,10 @@ struct nodo* mezclarSubconjuntosParecidos(struct nodo* DFA)
         {
             if( origen != destino )
             {
+                if(strcmp(destino->identificador,"8")==0)
+                {
+                    printf(".");
+                }
                 if(tienenExpresionesSimilares(origen->listaVertices,destino->listaVertices)==1)
                 {
                     printf("Expresiones similares: nodo %s y %s\n",origen->identificador,destino->identificador);
@@ -447,6 +424,10 @@ struct nodo* mezclarSubconjuntosParecidos(struct nodo* DFA)
                     if(destino->siguienteNodo!=NULL)
                     {
                         destino->siguienteNodo->anteriorNodo = destino->anteriorNodo;
+                        if(strcmp(destino->identificador,DFA->identificador)==0)
+                        {
+                            DFA=destino->siguienteNodo;
+                        }
                     }
                     if(destino->anteriorNodo!=NULL)
                     {
@@ -454,7 +435,6 @@ struct nodo* mezclarSubconjuntosParecidos(struct nodo* DFA)
                         if(strcmp(destino->identificador,DFA->primerElemento->identificador)==0)
                         {
                             DFA->primerElemento=destino->anteriorNodo;
-                            DFA=renombrarNodos(DFA);
                         }
                     }
                     if(destino->esFin==1)
@@ -490,18 +470,6 @@ struct nodo* DFA_a_DFA_Minimizado(struct nodo* DFA)
     DFA = mezclarSubconjuntosParecidos(DFA);
     DFA = renombrarNodos(DFA);
     subconjuntoMinimizado =  subconjuntoMinimizadoIniciales(subconjuntoMinimizado, DFA);
-    //while (hayNuevoSubconjunto)
-    //{
-    //    hayNuevoSubconjunto = subconjuntoAjeno(subconjuntoMinimizado);
-    //}
-    aux = DFA->primerElemento;
-
-    while (aux != NULL)
-    {
-        minimizado = agregarNodo(minimizado, identificador);
-        minimizado->listaVertices = aux->listaVertices;
-        aux=aux->anteriorNodo;
-    }
     return DFA;
 }
 long long  esDiferente(struct estado* listadoEstados, char* expresion)
@@ -550,7 +518,7 @@ struct nodo* reiniciarVisibilidad(struct nodo* listadoNodos)
     struct nodo* aux = &listadoNodos[0];
     while (aux != NULL)
     {
-        aux->esVisitado = 0;
+        aux->esVisitado[0] = '\0';
         aux = aux->siguienteNodo;
     }
     return listadoNodos;
@@ -575,12 +543,14 @@ struct nodo* mover(struct nodo* listadoNodos, char* expresion)
     while (aux != NULL)
     {
         iteracionVertice = aux->listaVertices;
-        aux->esVisitado = 1;
+        aux->esVisitado[0] = '1';
+        aux->esVisitado[1] = '\0';
         while (iteracionVertice != NULL)
         {
-            if (compararCadenas(iteracionVertice->expresion, expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
+            if (compararCadenas(iteracionVertice->expresion, expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado[0] == '\0')
             {
-                iteracionVertice->destino->esVisitado = 1;
+                iteracionVertice->destino->esVisitado[0] = '1';
+                iteracionVertice->destino->esVisitado[1] = '\0';
                 sprintf(identificador, "%s", iteracionVertice->destino->identificador);
                 nuevoEstado = agregarNodo(nuevoEstado, identificador);
                 nuevoEstado->listaVertices = aux->listaVertices->destino->listaVertices;
@@ -627,12 +597,13 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
     {
 
         iteracionVertice = aux->listaVertices;
-        aux->esVisitado = 1;
+        aux->esVisitado[0] = '1';
+        aux->esVisitado[1] = '\0';
 
         while (iteracionVertice != NULL)
         {
 
-            if (esVacio(iteracionVertice->expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
+            if (esVacio(iteracionVertice->expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado[0] == '\0')
             {
                 if(iteracionVertice->destino->esFin==1)
                 {
@@ -646,7 +617,8 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
                 nodosVisitados = agregarNodo(nodosVisitados, identificador);
                 nodosVisitados->listaVertices = iteracionVertice->destino->listaVertices;
                 
-                iteracionVertice->destino->esVisitado = 1;
+                iteracionVertice->destino->esVisitado[0] = '1';
+                iteracionVertice->destino->esVisitado[1] = '\0';
             }
             iteracionVertice = iteracionVertice->siguienteVertice;
         }
