@@ -451,6 +451,19 @@ struct nodo* mezclarSubconjuntosParecidos(struct nodo* DFA)
                     if(destino->anteriorNodo!=NULL)
                     {
                         destino->anteriorNodo->siguienteNodo = destino->siguienteNodo;
+                        if(strcmp(destino->identificador,DFA->primerElemento->identificador)==0)
+                        {
+                            DFA->primerElemento=destino->anteriorNodo;
+                            DFA=renombrarNodos(DFA);
+                        }
+                    }
+                    if(destino->esFin==1)
+                    {
+                        origen->esFin=1;
+                    }
+                    if(destino->esInicio==1)
+                    {
+                        origen->esInicio=1;
                     }
                 }
             }
@@ -612,10 +625,6 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
     aux = nodosVisitados->primerElemento;
     while (aux != NULL)
     {
-        if(aux->esFin==1)
-        {
-            esFin=1;
-        }
 
         iteracionVertice = aux->listaVertices;
         aux->esVisitado = 1;
@@ -625,6 +634,10 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
 
             if (esVacio(iteracionVertice->expresion) && iteracionVertice->destino != NULL && iteracionVertice->destino->esVisitado == 0)
             {
+                if(iteracionVertice->destino->esFin==1)
+                {
+                    esFin=1;
+                }
                 strcpy(identificador, iteracionVertice->destino->identificador);
                 
                 subconjunto = agregarNodo(subconjunto, identificador);
@@ -1339,6 +1352,7 @@ struct nodo* Regex_a_NFA_Thompson(struct nodo* thompson, char* regex)
         }
     }
     thompson=renombrarNodos(thompson);
+    thompson->esFin=1;
     return thompson;
 }
 void imprimirNodo(struct nodo* listadoNodos)
