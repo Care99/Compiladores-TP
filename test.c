@@ -1359,6 +1359,42 @@ long long  exponente(long long  base, long long  exponente)
     }
     return base;
 }
+void visualizarBNF(struct nodo* listadoNodos)
+{
+    struct nodo* aux = listadoNodos;
+    struct vertice* vertice = NULL;
+    char* expresion = (char*)malloc(sizeof(char)*numeroGrande);
+    char* destino = (char*)malloc(sizeof(char)*numeroGrande);
+    while(aux!=NULL)
+    {
+        printf("q%s->",aux->identificador);
+        vertice = aux->listaVertices;
+        while(vertice!=NULL)
+        {
+            strcpy(expresion,vertice->expresion);
+            strcpy(destino,vertice->destino->identificador);
+            if(strcmp(expresion,"ε")!=0)
+            {
+                printf("%s",expresion);
+            }
+            printf("q%s",destino);
+            vertice=vertice->siguienteVertice;
+            if(vertice!=NULL)
+            {
+                printf("|");
+            }
+            else
+            {
+                if(aux->esFin==1)
+                {
+                    printf("|ε");
+                }
+                printf("\n");
+            }
+        }
+        aux=aux->siguienteNodo;
+    }
+}
 int  main()
 {
     char* identificador=(char*)malloc(sizeof(char) * numeroGrande);
@@ -1439,7 +1475,7 @@ int  main()
     */
     origen = origen->anteriorNodo;
     destino = origen->anteriorNodo->anteriorNodo;
-    sprintf(expresion,"%c",'a');
+    sprintf(expresion,"%c",'-');
     agregarVertice(origen,destino,expresion);
     /*
         *origen: nodo 3
@@ -1448,7 +1484,7 @@ int  main()
     */
     origen = origen->anteriorNodo;
     destino = nodoInicial->anteriorNodo;
-    sprintf(expresion,"%c",'@');
+    sprintf(expresion,"%c",'+');
     agregarVertice(origen,destino,expresion);
     /*
         *origen: nodo 4
@@ -1488,5 +1524,19 @@ int  main()
     //convertir a DFA minimizado
     listadoNodos = DFA_a_DFA_Minimizado(listadoNodos);
     imprimirNodo(listadoNodos);
+
+    visualizarBNF(listadoNodos);
+    
     return 0;
+    /*
+        BNF resultante:
+        A -> _ B | 0 A | 1 A | 2 A | 3 A | 4 A | 5 A | 6 A | 7 A | 8 C | 9 C | ϵ
+        B -> + A
+        C -> - D
+        D -> _ B | 0 D | 1 D | 2 D | 3 D | 4 D | 5 D | 6 D | 7 D | 8 D | 9 D | ϵ
+        P(A)={0,1,2,3,4,5,6,7,8,9,_,ϵ}              S(A)={$}
+        P(B)={+}                                    S(B)={$}
+        P(C)={-}                                    S(C)={$}
+        P(D)={0,1,2,3,4,5,6,7,8,9,_,ϵ}              S(D)={$}
+    */
 }
