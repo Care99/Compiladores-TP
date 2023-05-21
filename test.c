@@ -54,7 +54,6 @@ struct nodo* Regex_a_NFA_Thompson(struct nodo* thompson, char* regex);
 struct nodo* renombrarNodos(struct nodo* DFA);
 void agregarVertice(struct nodo* origen, struct nodo* destino, char* expresion);
 struct nodo* reiniciarVisibilidad(struct nodo* listadoNodos);
-struct nodo** subconjuntoMinimizadoIniciales(struct nodo** subconjuntoMinimizado, struct nodo* DFA);
 void imprimirDiagramaEstado(char***diagramaEstado,int tamano);
 void imprimirNodo(struct nodo* listadoNodos);
 int esVacio(char* expresion)
@@ -286,27 +285,6 @@ struct nodo* renombrarNodos(struct nodo* DFA)
     }
     return DFA;
 }
-struct nodo** subconjuntoMinimizadoIniciales(struct nodo** subconjuntoMinimizado, struct nodo* DFA)
-{
-    struct nodo* aux = DFA;
-    struct nodo* subconjuntoResto = subconjuntoMinimizado[0];
-    struct nodo* subconjuntoFin = subconjuntoMinimizado[1];
-    while (aux != NULL)
-    {
-        if (aux->esFin == 1)
-        {
-            subconjuntoFin = agregarNodo(subconjuntoFin,aux->identificador);
-            subconjuntoFin->listaVertices = aux->listaVertices;
-        }
-        else
-        {
-            subconjuntoResto = agregarNodo(subconjuntoResto,aux->identificador);
-            subconjuntoResto->listaVertices = aux->listaVertices;
-        }
-        aux = aux->siguienteNodo;
-    }
-    return subconjuntoMinimizado;
-}
 long long  verificarMismoSubconjunto(struct nodo* subconjuntoMinimizado, char* identificador)
 {
     struct nodo* aux = NULL;
@@ -460,16 +438,10 @@ struct nodo* mezclarSubconjuntosParecidos(struct nodo* DFA)
 }
 struct nodo* DFA_a_DFA_Minimizado(struct nodo* DFA)
 {
-    struct nodo** subconjuntoMinimizado = (struct nodo**)malloc(sizeof(struct nodo*) * numeroGrande);
-    struct nodo* minimizado = NULL;
-    struct nodo* aux = NULL;
-    char* identificador = (char*)malloc(sizeof(char) * numeroGrande);
-    int i = 0;
-    int hayNuevoSubconjunto = 1;
     DFA = renombrarNodos(DFA);
     DFA = mezclarSubconjuntosParecidos(DFA);
     DFA = renombrarNodos(DFA);
-    subconjuntoMinimizado =  subconjuntoMinimizadoIniciales(subconjuntoMinimizado, DFA);
+
     return DFA;
 }
 long long  esDiferente(struct estado* listadoEstados, char* expresion)
@@ -570,7 +542,6 @@ struct nodo* epsilonCerrar(struct nodo* listadoNodos, struct nodo* estadosInicia
     struct nodo* subconjunto = NULL;
     struct nodo* nodosVisitados = NULL;
     struct nodo* aux = NULL;
-    struct nodo* nodoIdentificador = NULL;
     struct vertice* iteracionVertice = NULL;
     listadoNodos = reiniciarVisibilidad(listadoNodos);
     aux = estadosIniciales;
@@ -738,7 +709,7 @@ char* identificadorSubconjunto(struct nodo* subconjunto)
                 i++;
                 if(identificador[i]=='\0')
                 {
-                    sprintf(identificador,"%s%s,",identificador,aux->identificador);
+                    strcat(identificador,aux->identificador);
                     comaEncontrado=0;
                     numeroActual=0;
                     break;
@@ -764,7 +735,6 @@ struct nodo* NFA_a_DFA(struct nodo* listadoNodos)
     struct nodo* DFA = NULL;
     struct nodo** subconjunto = (struct nodo**)calloc(1000000,sizeof(struct nodo*));
     struct nodo* iteracionDFA = NULL;
-    struct vertice* auxVertice = NULL;
 
     listadoNodos = renombrarNodos(listadoNodos);
     listadoEstados = agregarEstados(listadoEstados, listadoNodos);
@@ -937,62 +907,6 @@ void imprimirDiagramaEstado(char***diagramaEstado,int tamano)
     }
     printf("tabla %d x %d:\n",tamano,tamano);
 }
-char* corregirParentesis(char* regex)
-{
-    int i=0;
-    int posicionAperturaParentesis=0;
-    int posicionCerraduraParentesis=0;
-    int tamanoRegex = strlen(regex);
-    char* primeraMitad =(char*)malloc(sizeof(char) * numeroGrande);
-    char* segundaMitad =(char*)malloc(sizeof(char) * numeroGrande);
-    for(i=0;i<tamanoRegex;i++)
-    {
-        if(regex[i]=='*')
-        {
-            continue;
-        }
-        else if(regex[i]=='|')
-        {
-            continue;
-        }
-        else if(regex[i]=='(')
-        {
-            posicionAperturaParentesis=i;
-            posicionCerraduraParentesis=posicionAperturaParentesis + visitarParentesis(&regex[posicionAperturaParentesis]);
-            i=posicionCerraduraParentesis;
-        }
-        else
-        {
-            strncpy(primeraMitad,regex,i);
-            sprintf(segundaMitad,"%c",'(');
-            while( i<tamanoRegex )
-            {
-                if(regex[i]!='(')
-                {
-                    strncat(segundaMitad,&regex[i],1);
-                }else
-                {
-                    sprintf(segundaMitad,"%s%c",segundaMitad,')');
-                    sprintf(regex,"%s%s",primeraMitad,segundaMitad);
-                    sprintf(primeraMitad,"%c",'\0');
-                    sprintf(segundaMitad,"%c",'\0');
-                    i=i+1;
-                    break;
-                }
-                i++;
-                if(i==tamanoRegex)
-                {
-                    sprintf(segundaMitad,"%s%c",segundaMitad,')');
-                    sprintf(regex,"%s%s",primeraMitad,segundaMitad);
-                    sprintf(primeraMitad,"%c",'\0');
-                    sprintf(segundaMitad,"%c",'\0');
-                    return regex;
-                }
-            }
-        }
-    }
-    return regex;
-}
 char* NFA_a_Regex(struct nodo* listadoNodos)
 {
     long long  tamanoListadoNodos = atoi(listadoNodos->identificador);
@@ -1018,7 +932,6 @@ char* NFA_a_Regex(struct nodo* listadoNodos)
         tamanoListadoNodos--;
     }
     strcpy(regex, diagramaEstado[0][1]);
-    //regex = corregirParentesis(regex);
     return regex;
 }
 long long  visitarParentesis(char* regex)
@@ -1405,7 +1318,6 @@ int  main()
     struct nodo* destino = NULL;
     struct nodo* nodoInicial = NULL;
     struct nodo* nodoFinal = NULL;
-    struct vertice* verticeAux = NULL;
     int  i = 0;
     sprintf(identificador,"%d",0);
     for (i = 0; i <= 5; i++)
