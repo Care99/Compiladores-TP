@@ -60,7 +60,7 @@ void MATCH(int t)
 }
 void ELIMINAR_VACIO()
 {
-    if(*punteroEntrada==' ')
+    while(*punteroEntrada==' ')
     {
         punteroEntrada++;
     }
