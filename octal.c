@@ -14,8 +14,8 @@
     OCTAL   -> 8 RESTA                  |OCTAL.num=RESTA.num
     OCTAL   -> 9 RESTA                  |OCTAL.num=RESTA.num
     OCTAL   -> ϵ                        |OCTAL.num=num
-    SUMA    -> OCTAL                    |OCTAL.num=SUMA.num + 1
-    RESTA   -> DECIMAL                  |DECIMAL.num=RESTA.num - 1
+    SUMA    -> OCTAL                    |SUMA.num=OCTAL.num + 1
+    RESTA   -> DECIMAL                  |RESTA.num= DECIMAL.num - 1
     DECIMAL -> ' ' SUMA                 |DECIMAL.num=SUMA.num
     DECIMAL -> 0 DECIMAL                |DECIMAL.num=DECIMAL'.num
     DECIMAL -> 1 DECIMAL                |DECIMAL.num=DECIMAL'.num
@@ -27,7 +27,7 @@
     DECIMAL -> 7 DECIMAL                |DECIMAL.num=DECIMAL'.num
     DECIMAL -> 8 DECIMAL                |DECIMAL.num=DECIMAL'.num
     DECIMAL -> 9 DECIMAL                |DECIMAL.num=DECIMAL'.num
-    DECIMAL -> ϵ                        |DECIMAL.num=DECIMAL'.num
+    DECIMAL -> ϵ                        |DECIMAL.num=num
     ----------------------------------------------------------------------
     Conjunto primero:                   |Conjunto Siguiente
     ----------------------------------------------------------------------
